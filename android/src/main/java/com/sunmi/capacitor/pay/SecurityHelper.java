@@ -59,7 +59,8 @@ public class SecurityHelper {
             byte[] dataBytes = hexStringToByteArray(data);
             byte[] macOut = new byte[8];
             
-            int result = securityOpt.calcMac(keyIndex, dataBytes, macOut);
+            // Signature: calcMac(int macType, int keyIndex, byte[] data, byte[] mac)
+            int result = securityOpt.calcMac(macAlgorithm, keyIndex, dataBytes, macOut);
             
             if (result == 0) {
                 JSObject ret = new JSObject();
@@ -88,7 +89,8 @@ public class SecurityHelper {
             byte[] ivBytes = hexStringToByteArray(iv);
             byte[] encryptedData = new byte[dataBytes.length + 16];
             
-            int result = securityOpt.dataEncrypt(keyIndex, mode, dataBytes, ivBytes, encryptedData);
+            // Signature: dataEncrypt(int keyIndex, byte[] dataIn, int encryptionMode, byte[] ivBytes, byte[] dataOut)
+            int result = securityOpt.dataEncrypt(keyIndex, dataBytes, mode, ivBytes, encryptedData);
             
             if (result > 0) {
                 JSObject ret = new JSObject();
@@ -117,7 +119,8 @@ public class SecurityHelper {
             byte[] ivBytes = hexStringToByteArray(iv);
             byte[] decryptedData = new byte[dataBytes.length];
             
-            int result = securityOpt.dataDecrypt(keyIndex, mode, dataBytes, ivBytes, decryptedData);
+            // Signature: dataDecrypt(int keyIndex, byte[] dataIn, int decryptionMode, byte[] ivBytes, byte[] dataOut)
+            int result = securityOpt.dataDecrypt(keyIndex, dataBytes, mode, ivBytes, decryptedData);
             
             if (result > 0) {
                 JSObject ret = new JSObject();

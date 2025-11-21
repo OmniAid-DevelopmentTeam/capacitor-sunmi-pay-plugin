@@ -329,11 +329,11 @@ export class SunmiPayWeb extends WebPlugin implements SunmiPayPlugin {
   }
 
   // PinPad Operations (stub implementations for remaining methods)
-  async initPinPad(): Promise<{ keySequence: string }> {
+  async initPinPad(): Promise<{ pinBlock: string; confirmed: boolean }> {
     return this.notAvailable('initPinPad');
   }
 
-  async initPinPadEx(): Promise<{ keySequence: string }> {
+  async initPinPadEx(): Promise<{ pinBlock: string; confirmed: boolean }> {
     return this.notAvailable('initPinPadEx');
   }
 
@@ -396,6 +396,10 @@ export class SunmiPayWeb extends WebPlugin implements SunmiPayPlugin {
 
   async saveCiphertextKey(): Promise<{ success: boolean }> {
     return this.notAvailable('saveCiphertextKey');
+  }
+
+  async saveKeyEx(): Promise<{ success: boolean }> {
+    return this.notAvailable('saveKeyEx');
   }
 
   async calcMac(): Promise<{ dataOut: string }> {
@@ -493,10 +497,6 @@ export class SunmiPayWeb extends WebPlugin implements SunmiPayPlugin {
 
   async deleteKeyEx(): Promise<{ success: boolean }> {
     return this.notAvailable('deleteKeyEx');
-  }
-
-  async saveKeyEx(): Promise<{ success: boolean }> {
-    return this.notAvailable('saveKeyEx');
   }
 
   async getTUSNEncryptData(): Promise<{ dataOut: string }> {

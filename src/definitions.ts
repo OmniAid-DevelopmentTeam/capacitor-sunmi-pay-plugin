@@ -614,12 +614,12 @@ export interface SunmiPayPlugin {
    * Initialize PinPad
    * @param config - PinPad configuration
    */
-  initPinPad(options: { config: PinPadConfig }): Promise<{ keySequence: string }>;
+  initPinPad(options: { config: PinPadConfig }): Promise<{ pinBlock: string; confirmed: boolean }>;
 
   /**
    * Initialize PinPad (extended method)
    */
-  initPinPadEx(options: { config: PinPadConfigEx }): Promise<{ keySequence: string }>;
+  initPinPadEx(options: { config: PinPadConfigEx }): Promise<{ pinBlock: string; confirmed: boolean }>;
 
   /**
    * Import PinPad data (for custom keyboards)
@@ -721,6 +721,20 @@ export interface SunmiPayPlugin {
     encryptIndex: number;
     keyAlgType: number;
     keyIndex: number;
+  }): Promise<{ success: boolean }>;
+
+  /**
+   * Save key with extended parameters (including keyUsage)
+   * This is the recommended method for PIN keys
+   */
+  saveKeyEx(options: {
+    keyType: number;        // Key type: KEK(1), TMK(2), PIK(3), TDK(4), MAK(5), REC(6)
+    keyValue: string;       // Key value in hex string
+    checkValue?: string;    // Check value in hex string (optional)
+    keyAlgType: number;     // Algorithm: DES(0), 3DES(1), AES128(2), AES192(3), AES256(4), SM4(5)
+    keyIndex: number;       // Key index (0-99)
+    keyUsage?: number;      // Key usage: PIN_ENC(0x01), MAC_GEN(0x02), DATA_ENC(0x04), DATA_DEC(0x08), ALL(0xFF)
+    encryptIndex?: number;  // Encrypt key index (if key is encrypted)
   }): Promise<{ success: boolean }>;
 
   /**
@@ -2132,7 +2146,7 @@ export enum EmvFlowType {
   CONTACTLESS = 0x04, // Contactless flow
 }
 
-export enum EmvTransResult {
+export enum EmvTransResultCode {
   APPROVED = 0, // Transaction approved
   DECLINED = 1, // Transaction declined
   GO_ONLINE = 2, // Go online

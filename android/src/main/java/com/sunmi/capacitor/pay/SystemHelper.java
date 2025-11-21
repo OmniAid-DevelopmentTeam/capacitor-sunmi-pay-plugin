@@ -95,12 +95,10 @@ public class SystemHelper {
                 return;
             }
 
-            for (int i = 0; i < count; i++) {
-                basicOpt.buzzer();
-                if (i < count - 1) {
-                    Thread.sleep(duration);
-                }
-            }
+            // buzzerOnDevice(count, freq, duration, interval)
+            // Using default frequency 2500Hz
+            int freq = 2500;
+            basicOpt.buzzerOnDevice(count, freq, duration, 0);
             
             callback.onSuccess();
         } catch (Exception e) {

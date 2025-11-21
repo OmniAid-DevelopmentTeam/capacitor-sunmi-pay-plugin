@@ -62,19 +62,10 @@ public class EMVTransactionHelper {
                 return;
             }
 
-            byte[] tagIn = hexStringToByteArray(responseData);
-            byte[] tagOut = new byte[256];
-            
-            int result = emvOpt.importOnlineRespDataV2(onlineResult, tagIn, tagOut);
-            
-            if (result >= 0) {
-                JSObject ret = new JSObject();
-                ret.put("success", true);
-                ret.put("scriptResult", byteArrayToHexString(tagOut, result));
-                callback.onSuccess(ret);
-            } else {
-                callback.onError("Failed to import online response: error code " + result);
-            }
+            // Note: importOnlineRespDataV2 doesn't exist in SDK, using importOnlineProcStatus instead
+            // Signature: importOnlineProcStatus(int onlineResult, String[] tagIn, String[] tagOut, byte[] scriptResult)
+            // For now, we'll return error as this needs proper implementation
+            callback.onError("importOnlineRespDataV2 method not available in current SDK version");
         } catch (Exception e) {
             Log.e(TAG, "Error importing online response", e);
             callback.onError("Error importing online response: " + e.getMessage());
@@ -130,13 +121,9 @@ public class EMVTransactionHelper {
                 return;
             }
 
-            int result = emvOpt.addAid(aid);
-            
-            if (result == 0) {
-                callback.onSuccess();
-            } else {
-                callback.onError("Failed to update AID: error code " + result);
-            }
+            // Note: addAid expects AidV2 object, not String. Need proper implementation.
+            // For now, return error
+            callback.onError("addAid requires AidV2 object - not yet implemented");
         } catch (Exception e) {
             Log.e(TAG, "Error updating AID", e);
             callback.onError("Error updating AID: " + e.getMessage());
@@ -153,13 +140,9 @@ public class EMVTransactionHelper {
                 return;
             }
 
-            int result = emvOpt.addCapk(capk);
-            
-            if (result == 0) {
-                callback.onSuccess();
-            } else {
-                callback.onError("Failed to update CAPK: error code " + result);
-            }
+            // Note: addCapk expects CapkV2 object, not String. Need proper implementation.
+            // For now, return error
+            callback.onError("addCapk requires CapkV2 object - not yet implemented");
         } catch (Exception e) {
             Log.e(TAG, "Error updating CAPK", e);
             callback.onError("Error updating CAPK: " + e.getMessage());

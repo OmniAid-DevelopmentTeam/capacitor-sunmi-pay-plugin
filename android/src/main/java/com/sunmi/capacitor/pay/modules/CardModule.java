@@ -14,6 +14,9 @@ import com.sunmi.pay.hardware.aidlv2.readcard.ReadCardOptV2;
 
 import org.json.JSONException;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Card Operation Module
  * Implements all card operations from Sunmi Pay SDK
@@ -145,7 +148,8 @@ public class CardModule {
             }
 
             checkCardCall = call;
-            readCardOpt.checkCardEnc(bundle, cardType, mCheckCardCallback, timeout);
+            // Signature: checkCardEnc(Bundle, CheckCardCallbackV2, int timeout)
+            readCardOpt.checkCardEnc(bundle, mCheckCardCallback, timeout);
             
         } catch (Exception e) {
             Log.e(TAG, "checkCardEnc error", e);
@@ -370,7 +374,8 @@ public class CardModule {
             byte[] sendBytes = hexToBytes(sendBuff);
             byte[] recvBytes = new byte[2046];
 
-            int result = readCardOpt.transmitApduExx(cardType, sendBytes, recvBytes);
+            // Signature: transmitApduExx(int cardSlot, int cardType, byte[] sendBuff, byte[] recvBuff)
+            int result = readCardOpt.transmitApduExx(0, cardType, sendBytes, recvBytes);
             
             if (result >= 0) {
                 JSObject response = new JSObject();
@@ -411,22 +416,23 @@ public class CardModule {
                 return;
             }
 
-            // Convert JSArray to byte[][] 
-            byte[][] sendList = new byte[apduCount][];
+            // Convert JSArray to List<String> 
+            List<String> sendList = new ArrayList<>();
             for (int i = 0; i < apduCount; i++) {
-                sendList[i] = hexToBytes(apduList.getString(i));
+                sendList.add(apduList.getString(i));
             }
 
-            byte[][] recvList = new byte[apduCount][2046];
+            List<String> recvList = new ArrayList<>();
             
-            int result = readCardOpt.transmitMultiApdus(cardType, sendList, recvList);
+            // Signature: transmitMultiApdus(int cardSlot, int cardType, List<String> sendList, List<String> recvList)
+            int result = readCardOpt.transmitMultiApdus(0, cardType, sendList, recvList);
             
             if (result >= 0) {
                 JSObject response = new JSObject();
                 JSArray recvArray = new JSArray();
                 
-                for (int i = 0; i < apduCount; i++) {
-                    recvArray.put(bytesToHex(recvList[i]));
+                for (String recv : recvList) {
+                    recvArray.put(recv);
                 }
                 
                 response.put("recvList", recvArray);

@@ -49,6 +49,16 @@ android {
     }
 }
 
+// Disable AAR bundling tasks because this plugin includes a local AAR dependency
+// The plugin is designed to be used as part of an application, not as a standalone AAR
+afterEvaluate {
+    tasks.findAll { task ->
+        task.name.startsWith('bundle') && task.name.endsWith('Aar')
+    }.each { task ->
+        task.enabled = false
+    }
+}
+
 repositories {
     google()
     mavenCentral()

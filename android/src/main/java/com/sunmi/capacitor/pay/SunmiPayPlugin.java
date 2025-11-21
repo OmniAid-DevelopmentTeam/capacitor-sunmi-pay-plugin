@@ -13,10 +13,13 @@ import com.sunmi.pay.hardware.aidlv2.readcard.ReadCardOptV2;
 import com.sunmi.pay.hardware.aidlv2.security.SecurityOptV2;
 import com.sunmi.pay.hardware.aidlv2.system.BasicOptV2;
 import com.sunmi.pay.hardware.aidlv2.tax.TaxOptV2;
-import com.sunmi.pay.hardware.aidlv2.printer.PrinterOptV2;
-import com.sunmi.paylib.SunmiPayKernel;
+import com.sunmi.pay.hardware.aidlv2.print.PrinterOptV2;
+import sunmi.paylib.SunmiPayKernel;
 import com.sunmi.capacitor.pay.modules.BasicModule;
 import com.sunmi.capacitor.pay.modules.CardModule;
+import com.sunmi.capacitor.pay.modules.PinPadModule;
+import com.sunmi.capacitor.pay.modules.SecurityModule;
+import com.sunmi.capacitor.pay.modules.EMVModule;
 
 /**
  * Sunmi Payment SDK V2 Capacitor Plugin
@@ -43,6 +46,9 @@ public class SunmiPayPlugin extends Plugin {
     // Module implementations
     private BasicModule basicModule;
     private CardModule cardModule;
+    private PinPadModule pinPadModule;
+    private SecurityModule securityModule;
+    private EMVModule emvModule;
 
     @Override
     public void load() {
@@ -51,6 +57,9 @@ public class SunmiPayPlugin extends Plugin {
         // Initialize modules
         basicModule = new BasicModule(getContext());
         cardModule = new CardModule(getContext());
+        pinPadModule = new PinPadModule(getContext());
+        securityModule = new SecurityModule(getContext());
+        emvModule = new EMVModule(getContext());
         
         // Auto-initialize SDK on plugin load
         initPaySDK(null);
@@ -91,6 +100,9 @@ public class SunmiPayPlugin extends Plugin {
                 // Set interfaces to modules
                 basicModule.setBasicOpt(basicOpt);
                 cardModule.setReadCardOpt(readCardOpt);
+                pinPadModule.setPinPadOpt(pinPadOpt);
+                securityModule.setSecurityOpt(securityOpt);
+                emvModule.setEMVOpt(emvOpt);
                 
                 if (call != null) {
                     JSObject result = new JSObject();
@@ -370,14 +382,95 @@ public class SunmiPayPlugin extends Plugin {
     }
 
     // ==================== PinPad Operation Module Methods ====================
-    // NOTE: PinPad methods would be implemented in a separate PinPadModule class
-    // and called here similar to BasicModule and CardModule
+
+    @PluginMethod
+    public void initPinPad(PluginCall call) {
+        pinPadModule.initPinPad(call);
+    }
+
+    @PluginMethod
+    public void initPinPadEx(PluginCall call) {
+        pinPadModule.initPinPadEx(call);
+    }
+
+    @PluginMethod
+    public void importPinPadData(PluginCall call) {
+        pinPadModule.importPinPadData(call);
+    }
+
+    @PluginMethod
+    public void importPinPadDataEx(PluginCall call) {
+        pinPadModule.importPinPadDataEx(call);
+    }
+
+    @PluginMethod
+    public void cancelInputPin(PluginCall call) {
+        pinPadModule.cancelInputPin(call);
+    }
+
+    @PluginMethod
+    public void setPinPadText(PluginCall call) {
+        pinPadModule.setPinPadText(call);
+    }
+
+    @PluginMethod
+    public void setPinPadMode(PluginCall call) {
+        pinPadModule.setPinPadMode(call);
+    }
+
+    @PluginMethod
+    public void getPinPadMode(PluginCall call) {
+        pinPadModule.getPinPadMode(call);
+    }
+
+    @PluginMethod
+    public void getPinBlock(PluginCall call) {
+        pinPadModule.getPinBlock(call);
+    }
 
     // ==================== Security Operation Module Methods ====================
-    // NOTE: Security methods would be implemented in a separate SecurityModule class
+
+    @PluginMethod
+    public void savePlaintextKey(PluginCall call) {
+        securityModule.savePlaintextKey(call);
+    }
+
+    @PluginMethod
+    public void saveCiphertextKey(PluginCall call) {
+        securityModule.saveCiphertextKey(call);
+    }
+
+    @PluginMethod
+    public void saveKeyEx(PluginCall call) {
+        securityModule.saveKeyEx(call);
+    }
+
+    @PluginMethod
+    public void deleteKey(PluginCall call) {
+        securityModule.deleteKey(call);
+    }
+
+    @PluginMethod
+    public void isKeyExist(PluginCall call) {
+        securityModule.isKeyExist(call);
+    }
 
     // ==================== EMV Operation Module Methods ====================
-    // NOTE: EMV methods would be implemented in a separate EMVModule class
+
+    @PluginMethod
+    public void transactProcess(PluginCall call) {
+        emvModule.transactProcess(call);
+    }
+
+    @PluginMethod
+    public void transactProcessEx(PluginCall call) {
+        emvModule.transactProcessEx(call);
+    }
+
+    @PluginMethod
+    public void abortTransact(PluginCall call) {
+        emvModule.abortTransact(call);
+    }
 
     // ==================== Printer Operation Module Methods ====================
 
@@ -395,7 +488,9 @@ public class SunmiPayPlugin extends Plugin {
                 return;
             }
 
-            printerOpt.printText(text, null);
+            // Note: PrinterOptV2 uses different API (printOpen/printPointLine/printClose)
+            // TODO: Implement proper printing with PrinterOptV2
+            call.reject("Printer methods not yet implemented for SDK v2");
             
             JSObject result = new JSObject();
             result.put("success", true);
@@ -424,7 +519,8 @@ public class SunmiPayPlugin extends Plugin {
                 return;
             }
 
-            printerOpt.printBarCode(data, barcodeType, width, height, null);
+            // Note: PrinterOptV2 uses different API
+            call.reject("Printer methods not yet implemented for SDK v2");
             
             JSObject result = new JSObject();
             result.put("success", true);
@@ -452,7 +548,8 @@ public class SunmiPayPlugin extends Plugin {
                 return;
             }
 
-            printerOpt.printQRCode(data, size, errorLevel, null);
+            // Note: PrinterOptV2 uses different API
+            call.reject("Printer methods not yet implemented for SDK v2");
             
             JSObject result = new JSObject();
             result.put("success", true);
@@ -473,7 +570,8 @@ public class SunmiPayPlugin extends Plugin {
         try {
             Integer lines = call.getInt("lines", 3);
             
-            printerOpt.lineFeed(lines, null);
+            // Note: PrinterOptV2 uses printFeedPaper(int lines)
+            printerOpt.printFeedPaper(lines);
             
             JSObject result = new JSObject();
             result.put("success", true);
@@ -492,7 +590,8 @@ public class SunmiPayPlugin extends Plugin {
         }
 
         try {
-            printerOpt.cutPaper(null);
+            // Note: PrinterOptV2 doesn't have cutPaper
+            call.reject("cutPaper not available in SDK v2");
             
             JSObject result = new JSObject();
             result.put("success", true);
@@ -530,7 +629,8 @@ public class SunmiPayPlugin extends Plugin {
         }
 
         try {
-            printerOpt.initPrinter(null);
+            // Note: PrinterOptV2 doesn't have initPrinter
+            call.reject("initPrinter not available in SDK v2");
             
             JSObject result = new JSObject();
             result.put("success", true);
