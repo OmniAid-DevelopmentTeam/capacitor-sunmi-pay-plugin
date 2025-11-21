@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Android
+*.iml
+.gradle
+/android/local.properties
+/android/.idea
+/android/build
+/android/captures
+.externalNativeBuild
+.cxx
+
+# iOS
+/ios/Pods/
+/ios/*.xcworkspace
+/ios/*.xcuserdata
+/ios/build/
+
