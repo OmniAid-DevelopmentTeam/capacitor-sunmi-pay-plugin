@@ -102,7 +102,8 @@ public class SunmiPayPlugin extends Plugin {
                 cardModule.setReadCardOpt(readCardOpt);
                 pinPadModule.setPinPadOpt(pinPadOpt);
                 securityModule.setSecurityOpt(securityOpt);
-                emvModule.setEMVOpt(emvOpt);
+                // EMV module disabled for card reader mode (not needed for simple card reading)
+                // emvModule.setEMVOpt(emvOpt);
                 
                 if (call != null) {
                     JSObject result = new JSObject();
