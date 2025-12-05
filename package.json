@@ -8,18 +8,20 @@
   "unpkg": "dist/plugin.js",
   "files": [
     "android/",
-    "dist/",
-    "ios/",
-    "CapacitorSunmiPay.podspec"
+    "dist/"
   ],
   "author": "Sunmi Capacitor Plugin",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/capacitor-sunmi-pay"
+    "url": "https://github.com/OmniAid-DevelopmentTeam/capacitor-sunmi-pay-plugin"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/capacitor-sunmi-pay/issues"
+    "url": "https://github.com/OmniAid-DevelopmentTeam/capacitor-sunmi-pay-plugin/issues"
+  },
+  "homepage": "https://github.com/OmniAid-DevelopmentTeam/capacitor-sunmi-pay-plugin#readme",
+  "engines": {
+    "node": ">=16.0.0"
   },
   "keywords": [
     "capacitor",
@@ -73,9 +75,6 @@
     "extends": "@ionic/eslint-config/recommended"
   },
   "capacitor": {
-    "ios": {
-      "src": "ios"
-    },
     "android": {
       "src": "android"
     }
