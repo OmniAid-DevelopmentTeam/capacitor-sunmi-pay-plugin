@@ -4,7 +4,7 @@
 
 A comprehensive, security-audited Capacitor plugin providing seamless integration with Sunmi POS devices for payment processing, card reading, EMV transactions, security operations, and printing. Full implementation of all SDK methods with complete TypeScript support.
 
-[![NPM Version](https://img.shields.io/badge/version-0.0.6-blue.svg)](https://www.npmjs.com/package/capacitor-sunmi-pay)
+[![NPM Version](https://img.shields.io/badge/version-0.0.7-blue.svg)](https://www.npmjs.com/package/capacitor-sunmi-pay)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Sunmi-orange.svg)](https://www.sunmi.com)
 [![PCI DSS](https://img.shields.io/badge/PCI%20DSS-Compliant-green.svg)](https://www.pcisecuritystandards.org)
@@ -913,6 +913,35 @@ capacitor-sunmi-pay-plugin/
 
 ## 📜 Changelog
 
+### v0.0.7 (2025-12-06)
+
+**Working Printer Implementation**
+
+#### New Features
+- ✅ **Full printer support** using `SunmiPrinterService` from official `com.sunmi:printerlibrary:1.0.22`
+- ✅ `printText()` - Print plain text
+- ✅ `printTextWithFormat()` - Print text with formatting (bold, underline, alignment, font size)
+- ✅ `printBarcode()` - Print barcodes (CODE128, EAN13, UPC-A, etc.)
+- ✅ `printQRCode()` - Print QR codes with configurable size and error correction
+- ✅ `feedPaper()` - Feed paper by number of lines
+- ✅ `cutPaper()` - Cut paper (on supported devices)
+- ✅ `getPrinterStatus()` - Get printer status (paper, temperature, etc.)
+- ✅ `initPrinter()` - Initialize printer (reset formatting)
+
+#### Technical Details
+- Added dependency: `com.sunmi:printerlibrary:1.0.22`
+- Printer service connects automatically on plugin load
+- Uses `InnerPrinterManager` for service binding
+- Supports text styling via ESC/POS commands when direct API unavailable
+- Bold text: `\u001B\u0045\u0001` / `\u001B\u0045\u0000`
+- Underline text: `\u001B\u002D\u0001` / `\u001B\u002D\u0000`
+
+#### Notes
+- Printer works independently of Pay SDK (no `initPaySDK()` required for printing)
+- Compatible with all Sunmi POS devices with built-in thermal printer
+
+---
+
 ### v0.0.6 (2025-12-06)
 
 **SDK API Compatibility Update**
@@ -1253,9 +1282,9 @@ This plugin is **production-ready** and includes:
 
 ---
 
-**Version**: 0.0.6  
+**Version**: 0.0.7  
 **SDK Version**: 2.0.17  
 **Release Date**: December 6, 2025  
-**Status**: ✅ Production Ready | PCI DSS Compliant | SDK Compatible  
+**Status**: ✅ Production Ready | PCI DSS Compliant | SDK Compatible | Printing Ready  
 
 **Made with ❤️ for Sunmi developers worldwide**
