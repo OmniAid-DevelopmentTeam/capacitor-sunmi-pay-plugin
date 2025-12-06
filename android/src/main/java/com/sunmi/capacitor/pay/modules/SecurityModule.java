@@ -547,11 +547,23 @@ public class SecurityModule {
             byte[] ivBytes = iv.isEmpty() ? null : hexStringToBytes(iv);
             byte[] dataOut = new byte[dataInBytes.length];
 
-            int result = securityOpt.dataEncryptEx(keyIndex, keyLength, dataInBytes, encryptionMode, ivBytes, dataOut);
+            // SDK method: dataEncryptEx(Bundle bundle, byte[] dataOut)
+            Bundle bundle = new Bundle();
+            bundle.putInt("keyIndex", keyIndex);
+            bundle.putInt("keyLength", keyLength);
+            bundle.putByteArray("dataIn", dataInBytes);
+            bundle.putInt("encryptionMode", encryptionMode);
+            if (ivBytes != null) {
+                bundle.putByteArray("iv", ivBytes);
+            }
+            
+            int result = securityOpt.dataEncryptEx(bundle, dataOut);
 
-            if (result == 0) {
+            if (result >= 0) {
                 JSObject response = new JSObject();
-                response.put("dataOut", bytesToHex(dataOut));
+                byte[] validData = new byte[result > 0 ? result : dataOut.length];
+                System.arraycopy(dataOut, 0, validData, 0, validData.length);
+                response.put("dataOut", bytesToHex(validData));
                 call.resolve(response);
             } else {
                 call.reject("Failed to encrypt data ex, error code: " + result);
@@ -587,11 +599,23 @@ public class SecurityModule {
             byte[] ivBytes = iv.isEmpty() ? null : hexStringToBytes(iv);
             byte[] dataOut = new byte[dataInBytes.length];
 
-            int result = securityOpt.dataDecryptEx(keyIndex, keyLength, dataInBytes, encryptionMode, ivBytes, dataOut);
+            // SDK method: dataDecryptEx(Bundle bundle, byte[] dataOut)
+            Bundle bundle = new Bundle();
+            bundle.putInt("keyIndex", keyIndex);
+            bundle.putInt("keyLength", keyLength);
+            bundle.putByteArray("dataIn", dataInBytes);
+            bundle.putInt("encryptionMode", encryptionMode);
+            if (ivBytes != null) {
+                bundle.putByteArray("iv", ivBytes);
+            }
+            
+            int result = securityOpt.dataDecryptEx(bundle, dataOut);
 
-            if (result == 0) {
+            if (result >= 0) {
                 JSObject response = new JSObject();
-                response.put("dataOut", bytesToHex(dataOut));
+                byte[] validData = new byte[result > 0 ? result : dataOut.length];
+                System.arraycopy(dataOut, 0, validData, 0, validData.length);
+                response.put("dataOut", bytesToHex(validData));
                 call.resolve(response);
             } else {
                 call.reject("Failed to decrypt data ex, error code: " + result);
@@ -785,7 +809,9 @@ public class SecurityModule {
             byte[] dataInBytes = hexStringToBytes(dataIn);
             byte[] macBytes = hexStringToBytes(mac);
 
-            int result = securityOpt.verifyMacDukpt(keyIndex, macType, dataInBytes, macBytes);
+            // SDK method: verifyMacDukptEx(int keySelect, int keyIndex, int macType, byte[] dataIn, byte[] macData)
+            // Using keySelect=0 as default
+            int result = securityOpt.verifyMacDukptEx(0, keyIndex, macType, dataInBytes, macBytes);
 
             if (result == 0) {
                 JSObject response = new JSObject();

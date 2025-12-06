@@ -665,10 +665,9 @@ public class EMVModule {
         }
 
         try {
-            String aidHex = call.getString("aid");
-            byte[] aidBytes = aidHex != null ? hexStringToBytes(aidHex) : null;
+            String tag9F06Value = call.getString("aid");  // tag9F06 value in hex format
 
-            int result = emvOpt.deleteAid(aidBytes);
+            int result = emvOpt.deleteAid(tag9F06Value);
             
             if (result == 0) {
                 JSObject response = new JSObject();
@@ -684,7 +683,7 @@ public class EMVModule {
     }
 
     /**
-     * Get AID list
+     * Get AID list - uses queryAidCapkList with type=0 for AID
      */
     public void getAidList(PluginCall call) {
         if (emvOpt == null) {
@@ -693,22 +692,15 @@ public class EMVModule {
         }
 
         try {
-            Integer paramType = call.getInt("paramType", 0);
-            
-            java.util.List<AidV2> aidList = new java.util.ArrayList<>();
-            int result = emvOpt.getAidList(paramType, aidList);
+            java.util.List<String> aidList = new java.util.ArrayList<>();
+            int result = emvOpt.queryAidCapkList(0, aidList);  // type 0 = AID
             
             if (result == 0) {
                 JSObject response = new JSObject();
                 JSArray aidArray = new JSArray();
                 
-                for (AidV2 aid : aidList) {
-                    JSObject aidObj = new JSObject();
-                    aidObj.put("aid", bytesToHex(aid.aid));
-                    aidObj.put("selFlag", aid.selFlag);
-                    aidObj.put("paramType", aid.paramType);
-                    aidObj.put("kernelType", aid.kernelType);
-                    aidArray.put(aidObj);
+                for (String aid : aidList) {
+                    aidArray.put(aid);
                 }
                 
                 response.put("aidList", aidArray);
@@ -743,11 +735,11 @@ public class EMVModule {
             CapkV2 capk = new CapkV2();
             capk.rid = hexStringToBytes(capkObj.getString("rid", ""));
             capk.index = (byte) capkObj.getInteger("index", 0).intValue();
-            capk.hashAlg = (byte) capkObj.getInteger("hashAlg", 1).intValue();
-            capk.rsaAlg = (byte) capkObj.getInteger("rsaAlg", 1).intValue();
+            capk.hashInd = (byte) capkObj.getInteger("hashInd", 1).intValue();
+            capk.arithInd = (byte) capkObj.getInteger("arithInd", 1).intValue();
             capk.expDate = hexStringToBytes(capkObj.getString("expDate", ""));
             capk.exponent = hexStringToBytes(capkObj.getString("exponent", ""));
-            capk.modulus = hexStringToBytes(capkObj.getString("modulus", ""));
+            capk.modul = hexStringToBytes(capkObj.getString("modul", ""));
             capk.checkSum = hexStringToBytes(capkObj.getString("checkSum", ""));
 
             int result = emvOpt.addCapk(capk);
@@ -775,13 +767,10 @@ public class EMVModule {
         }
 
         try {
-            String rid = call.getString("rid");
-            Integer index = call.getInt("index");
+            String tag9F06Value = call.getString("rid");  // RID in hex format
+            String tag9F22Value = call.getString("index");  // Index in hex format
 
-            byte[] ridBytes = rid != null ? hexStringToBytes(rid) : null;
-            int indexVal = index != null ? index : -1;
-
-            int result = emvOpt.deleteCapk(ridBytes, (byte) indexVal);
+            int result = emvOpt.deleteCapk(tag9F06Value, tag9F22Value);
             
             if (result == 0) {
                 JSObject response = new JSObject();
@@ -797,7 +786,7 @@ public class EMVModule {
     }
 
     /**
-     * Get CAPK list
+     * Get CAPK list - uses queryAidCapkList with type=1 for CAPK
      */
     public void getCapkList(PluginCall call) {
         if (emvOpt == null) {
@@ -806,20 +795,15 @@ public class EMVModule {
         }
 
         try {
-            java.util.List<CapkV2> capkList = new java.util.ArrayList<>();
-            int result = emvOpt.getCapkList(capkList);
+            java.util.List<String> capkList = new java.util.ArrayList<>();
+            int result = emvOpt.queryAidCapkList(1, capkList);  // type 1 = CAPK
             
             if (result == 0) {
                 JSObject response = new JSObject();
                 JSArray capkArray = new JSArray();
                 
-                for (CapkV2 capk : capkList) {
-                    JSObject capkObj = new JSObject();
-                    capkObj.put("rid", bytesToHex(capk.rid));
-                    capkObj.put("index", capk.index & 0xFF);
-                    capkObj.put("hashAlg", capk.hashAlg);
-                    capkObj.put("rsaAlg", capk.rsaAlg);
-                    capkArray.put(capkObj);
+                for (String capk : capkList) {
+                    capkArray.put(capk);
                 }
                 
                 response.put("capkList", capkArray);
@@ -845,18 +829,19 @@ public class EMVModule {
         }
 
         try {
-            Integer tag = call.getInt("tag");
+            Integer opCode = call.getInt("opCode", 0);
+            String tag = call.getString("tag");
             if (tag == null) {
                 call.reject("Parameter 'tag' is required");
                 return;
             }
 
-            byte[] value = new byte[512];
-            int len = emvOpt.getTlv(tag, value);
+            byte[] outData = new byte[512];
+            int len = emvOpt.getTlv(opCode, tag, outData);
             
             if (len >= 0) {
                 byte[] actualValue = new byte[len];
-                System.arraycopy(value, 0, actualValue, 0, len);
+                System.arraycopy(outData, 0, actualValue, 0, len);
                 
                 JSObject response = new JSObject();
                 response.put("value", bytesToHex(actualValue));
@@ -881,7 +866,8 @@ public class EMVModule {
         }
 
         try {
-            Integer tag = call.getInt("tag");
+            Integer opCode = call.getInt("opCode", 0);
+            String tag = call.getString("tag");
             String value = call.getString("value");
             
             if (tag == null || value == null) {
@@ -889,16 +875,11 @@ public class EMVModule {
                 return;
             }
 
-            byte[] valueBytes = hexStringToBytes(value);
-            int result = emvOpt.setTlv(tag, valueBytes);
+            emvOpt.setTlv(opCode, tag, value);
             
-            if (result == 0) {
-                JSObject response = new JSObject();
-                response.put("success", true);
-                call.resolve(response);
-            } else {
-                call.reject("Set TLV failed, error code: " + result);
-            }
+            JSObject response = new JSObject();
+            response.put("success", true);
+            call.resolve(response);
         } catch (Exception e) {
             Log.e(TAG, "setTlv error", e);
             call.reject("Failed to set TLV: " + e.getMessage());
@@ -915,6 +896,7 @@ public class EMVModule {
         }
 
         try {
+            Integer opCode = call.getInt("opCode", 0);
             JSArray tags = call.getArray("tags");
             if (tags == null) {
                 call.reject("Parameter 'tags' is required");
@@ -926,19 +908,18 @@ public class EMVModule {
                 tagStrings[i] = tags.getString(i);
             }
 
-            String[] values = new String[tags.length()];
-            int result = emvOpt.getTlvList(tagStrings, values);
+            byte[] outData = new byte[4096]; // Buffer for output data
+            int len = emvOpt.getTlvList(opCode, tagStrings, outData);
             
-            if (result == 0) {
+            if (len >= 0) {
                 JSObject response = new JSObject();
-                JSArray valueArray = new JSArray();
-                for (String v : values) {
-                    valueArray.put(v != null ? v : "");
-                }
-                response.put("values", valueArray);
+                byte[] actualData = new byte[len];
+                System.arraycopy(outData, 0, actualData, 0, len);
+                response.put("data", bytesToHex(actualData));
+                response.put("length", len);
                 call.resolve(response);
             } else {
-                call.reject("Get TLV list failed, error code: " + result);
+                call.reject("Get TLV list failed, error code: " + len);
             }
         } catch (Exception e) {
             Log.e(TAG, "getTlvList error", e);
@@ -949,7 +930,7 @@ public class EMVModule {
     // ==================== Terminal Parameters ====================
 
     /**
-     * Set terminal parameters
+     * Set terminal parameters (extended)
      */
     public void setTermParam(PluginCall call) {
         if (emvOpt == null) {
@@ -991,15 +972,11 @@ public class EMVModule {
                 termParams.putString("terminalIdentifier", params.getString("terminalIdentifier"));
             }
 
-            int result = emvOpt.setTermParamEx(termParams);
+            emvOpt.setTermParamEx(termParams);
             
-            if (result == 0) {
-                JSObject response = new JSObject();
-                response.put("success", true);
-                call.resolve(response);
-            } else {
-                call.reject("Set terminal parameters failed, error code: " + result);
-            }
+            JSObject response = new JSObject();
+            response.put("success", true);
+            call.resolve(response);
         } catch (Exception e) {
             Log.e(TAG, "setTermParam error", e);
             call.reject("Failed to set terminal parameters: " + e.getMessage());
@@ -1007,7 +984,7 @@ public class EMVModule {
     }
 
     /**
-     * Get terminal parameters
+     * Get terminal parameters - Note: SDK does not have getTermParamEx, returning empty for now
      */
     public void getTermParam(PluginCall call) {
         if (emvOpt == null) {
@@ -1016,25 +993,11 @@ public class EMVModule {
         }
 
         try {
-            Bundle termParams = new Bundle();
-            int result = emvOpt.getTermParamEx(termParams);
-            
-            if (result == 0) {
-                JSObject response = new JSObject();
-                
-                for (String key : termParams.keySet()) {
-                    Object value = termParams.get(key);
-                    if (value instanceof String) {
-                        response.put(key, (String) value);
-                    } else if (value instanceof Integer) {
-                        response.put(key, (Integer) value);
-                    }
-                }
-                
-                call.resolve(response);
-            } else {
-                call.reject("Get terminal parameters failed, error code: " + result);
-            }
+            // Note: SDK 2.0.17 does not have getTermParamEx method
+            // Return empty response - terminal params should be tracked by the application
+            JSObject response = new JSObject();
+            response.put("message", "Terminal parameter retrieval not supported in SDK 2.0.17");
+            call.resolve(response);
         } catch (Exception e) {
             Log.e(TAG, "getTermParam error", e);
             call.reject("Failed to get terminal parameters: " + e.getMessage());
@@ -1265,7 +1228,7 @@ public class EMVModule {
     // ==================== DRL Operations ====================
 
     /**
-     * Add DRL (Data Recovery List)
+     * Add DRL Limit Set
      */
     public void addDrl(PluginCall call) {
         if (emvOpt == null) {
@@ -1281,12 +1244,19 @@ public class EMVModule {
             }
 
             DrlV2 drl = new DrlV2();
-            drl.aid = hexStringToBytes(drlObj.getString("aid", ""));
-            drl.drlType = (byte) drlObj.getInteger("drlType", 0).intValue();
-            drl.programId = hexStringToBytes(drlObj.getString("programId", ""));
-            drl.transactionType = (byte) drlObj.getInteger("transactionType", 0).intValue();
+            drl.isDefaultLmt = drlObj.getBoolean("isDefaultLmt", false);
+            drl.statusCheck = drlObj.getBoolean("statusCheck", false);
+            drl.zeroCheck = (byte) drlObj.getInteger("zeroCheck", 1).intValue();
+            drl.programID = hexStringToBytes(drlObj.getString("programId", ""));
+            drl.cvmLmt = hexStringToBytes(drlObj.getString("cvmLmt", "000000000000"));
+            drl.termClssLmt = hexStringToBytes(drlObj.getString("termClssLmt", "000000000000"));
+            drl.termClssFloorLmt = hexStringToBytes(drlObj.getString("termClssFloorLmt", "000000000000"));
+            drl.termFloorLmt = hexStringToBytes(drlObj.getString("termFloorLmt", "000000000000"));
+            drl.cvmLmtActivate = drlObj.getBoolean("cvmLmtActivate", true);
+            drl.termClssLmtActivate = drlObj.getBoolean("termClssLmtActivate", false);
+            drl.termClssFloorLmtActivate = (byte) drlObj.getInteger("termClssFloorLmtActivate", 1).intValue();
 
-            int result = emvOpt.addDrl(drl);
+            int result = emvOpt.addDrlLimitSet(drl);
             
             if (result == 0) {
                 JSObject response = new JSObject();
@@ -1302,7 +1272,7 @@ public class EMVModule {
     }
 
     /**
-     * Delete DRL
+     * Delete DRL Limit Set
      */
     public void deleteDrl(PluginCall call) {
         if (emvOpt == null) {
@@ -1311,10 +1281,9 @@ public class EMVModule {
         }
 
         try {
-            String aid = call.getString("aid");
-            byte[] aidBytes = aid != null ? hexStringToBytes(aid) : null;
-
-            int result = emvOpt.deleteDrl(aidBytes);
+            String programId = call.getString("programId");
+            
+            int result = emvOpt.deleteDrlLimitSet(programId);
             
             if (result == 0) {
                 JSObject response = new JSObject();

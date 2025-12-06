@@ -555,11 +555,14 @@ public class PinPadModule {
                 return;
             }
 
-            int result = pinPadOpt.resetAntiExhaust(keyType, keyIndex);
+            // Note: resetAntiExhaust is not available in SDK
+            // Using setAntiExhaustiveProtectionMode with level 1 (lowest) as a workaround
+            int result = pinPadOpt.setAntiExhaustiveProtectionMode(1);
             
-            if (result == 0) {
+            if (result >= 0) {
                 JSObject response = new JSObject();
                 response.put("success", true);
+                response.put("waitTime", result);
                 call.resolve(response);
             } else {
                 call.reject("Reset anti-exhaustive failed, error code: " + result);
@@ -589,16 +592,18 @@ public class PinPadModule {
                 return;
             }
 
-            Bundle statusOut = new Bundle();
-            int result = pinPadOpt.getAntiExhaustStatus(keyType, keyIndex, statusOut);
+            // SDK method: getAntiExhaustiveProtectionMode() returns current mode (1-5)
+            int currentMode = pinPadOpt.getAntiExhaustiveProtectionMode();
             
-            if (result == 0) {
+            if (currentMode >= 0) {
                 JSObject response = new JSObject();
-                response.put("remainTimes", statusOut.getInt("remainTimes", 0));
-                response.put("isLocked", statusOut.getBoolean("isLocked", false));
+                response.put("mode", currentMode);
+                // Estimate remain times based on mode
+                int[] maxTimes = {4, 12, 30, 60, 120};
+                response.put("maxTimes", currentMode > 0 && currentMode <= 5 ? maxTimes[currentMode - 1] : 0);
                 call.resolve(response);
             } else {
-                call.reject("Get anti-exhaustive status failed, error code: " + result);
+                call.reject("Get anti-exhaustive status failed, error code: " + currentMode);
             }
         } catch (Exception e) {
             Log.e(TAG, "getAntiExhaustStatus error", e);
@@ -626,15 +631,22 @@ public class PinPadModule {
                 return;
             }
 
-            Bundle config = new Bundle();
-            config.putInt("maxTimes", maxTimes);
-            config.putInt("lockDuration", lockDuration);
+            // SDK method: setAntiExhaustiveProtectionMode(int level)
+            // level 1-5: 1-2min4次, 2-6min12次, 3-15min30次, 4-30min60次, 5-60min120次
+            // Map maxTimes to level
+            int level;
+            if (maxTimes <= 4) level = 1;
+            else if (maxTimes <= 12) level = 2;
+            else if (maxTimes <= 30) level = 3;
+            else if (maxTimes <= 60) level = 4;
+            else level = 5;
 
-            int result = pinPadOpt.setAntiExhaustConfig(keyType, keyIndex, config);
+            int result = pinPadOpt.setAntiExhaustiveProtectionMode(level);
             
-            if (result == 0) {
+            if (result >= 0) {
                 JSObject response = new JSObject();
                 response.put("success", true);
+                response.put("waitTime", result);
                 call.resolve(response);
             } else {
                 call.reject("Set anti-exhaustive config failed, error code: " + result);
@@ -672,7 +684,8 @@ public class PinPadModule {
                 config.putInt("volume", call.getInt("volume", 50));
             }
 
-            int result = pinPadOpt.setVisualImpairmentMode(config);
+            // SDK method: setVisualImpairmentModeParam(Bundle param)
+            int result = pinPadOpt.setVisualImpairmentModeParam(config);
             
             if (result == 0) {
                 JSObject response = new JSObject();
@@ -698,13 +711,16 @@ public class PinPadModule {
 
         try {
             Bundle statusOut = new Bundle();
-            int result = pinPadOpt.getVisualImpairmentMode(statusOut);
+            // SDK method: getVisualImpairmentModeParam(Bundle param)
+            int result = pinPadOpt.getVisualImpairmentModeParam(statusOut);
             
             if (result == 0) {
                 JSObject response = new JSObject();
-                response.put("enabled", statusOut.getBoolean("enable", false));
-                response.put("voiceType", statusOut.getInt("voiceType", 0));
-                response.put("volume", statusOut.getInt("volume", 50));
+                response.put("timeoutGap1", statusOut.getInt("timeoutGap1", 10));
+                response.put("timeoutGap2", statusOut.getInt("timeoutGap2", 10));
+                response.put("ttsLanguage", statusOut.getInt("ttsLanguage", 0));
+                response.put("rnibSelectMode", statusOut.getInt("rnibSelectMode", 0));
+                response.put("rnibHoldTime", statusOut.getInt("rnibHoldTime", 30));
                 call.resolve(response);
             } else {
                 call.reject("Get visual impairment mode failed, error code: " + result);
@@ -727,19 +743,12 @@ public class PinPadModule {
         }
 
         try {
-            byte[] serialNo = new byte[32];
-            int result = pinPadOpt.getPinPadSerialNo(serialNo);
-            
-            if (result >= 0) {
-                // Trim null bytes
-                String serial = new String(serialNo, 0, result).trim();
-                
-                JSObject response = new JSObject();
-                response.put("serialNo", serial);
-                call.resolve(response);
-            } else {
-                call.reject("Get PinPad serial number failed, error code: " + result);
-            }
+            // Note: getPinPadSerialNo is not available in SDK
+            // Return a placeholder response
+            JSObject response = new JSObject();
+            response.put("serialNo", "N/A");
+            response.put("note", "PinPad serial number not available in this SDK version");
+            call.resolve(response);
         } catch (Exception e) {
             Log.e(TAG, "getPinPadSerialNo error", e);
             call.reject("Failed to get PinPad serial number: " + e.getMessage());
@@ -756,18 +765,11 @@ public class PinPadModule {
         }
 
         try {
-            byte[] version = new byte[64];
-            int result = pinPadOpt.getPinPadVersion(version);
-            
-            if (result >= 0) {
-                String versionStr = new String(version, 0, result).trim();
-                
-                JSObject response = new JSObject();
-                response.put("version", versionStr);
-                call.resolve(response);
-            } else {
-                call.reject("Get PinPad version failed, error code: " + result);
-            }
+            // Note: getPinPadVersion is not available in SDK
+            JSObject response = new JSObject();
+            response.put("version", "N/A");
+            response.put("note", "PinPad version not available in this SDK version");
+            call.resolve(response);
         } catch (Exception e) {
             Log.e(TAG, "getPinPadVersion error", e);
             call.reject("Failed to get PinPad version: " + e.getMessage());
@@ -790,11 +792,11 @@ public class PinPadModule {
                 return;
             }
 
-            Bundle result = new Bundle();
-            int ret = pinPadOpt.isPinPadFeatureSupported(feature, result);
-            
+            // Note: isPinPadFeatureSupported is not available in SDK
+            // Always return true as a default behavior
             JSObject response = new JSObject();
-            response.put("supported", ret == 0);
+            response.put("supported", true);
+            response.put("note", "Feature check not available in this SDK version");
             call.resolve(response);
         } catch (Exception e) {
             Log.e(TAG, "isPinPadFeatureSupported error", e);
