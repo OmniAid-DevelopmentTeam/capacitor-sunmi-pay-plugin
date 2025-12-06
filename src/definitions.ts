@@ -572,10 +572,12 @@ export interface SunmiPayPlugin {
 
   /**
    * CTX512B get signature
+   * @param block - Block number
+   * @param random - Optional random data for signature (hex string, 8 bytes)
    */
   ctx512GetSignature(options: {
     block: number;
-    random: string;
+    random?: string;
   }): Promise<{ signature: string }>;
 
   /**

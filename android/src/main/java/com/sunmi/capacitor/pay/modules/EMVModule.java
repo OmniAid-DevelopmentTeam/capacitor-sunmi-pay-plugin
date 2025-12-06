@@ -5,12 +5,17 @@ import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import com.sunmi.pay.hardware.aidlv2.bean.AidV2;
+import com.sunmi.pay.hardware.aidlv2.bean.CapkV2;
+import com.sunmi.pay.hardware.aidlv2.bean.DrlV2;
 import com.sunmi.pay.hardware.aidlv2.bean.EMVTransDataV2;
 import com.sunmi.pay.hardware.aidlv2.emv.EMVListenerV2;
 import com.sunmi.pay.hardware.aidlv2.emv.EMVOptV2;
+
+import java.util.List;
 
 /**
  * EMV Module - Handles EMV transaction processing
@@ -615,5 +620,754 @@ public class EMVModule {
             Log.d(TAG, "Container IDs: " + (containerID != null ? containerID.length : 0));
         }
     };
+
+    // ==================== AID Operations ====================
+
+    /**
+     * Add AID (Application Identifier)
+     */
+    public void addAid(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            JSObject aidObj = call.getObject("aid");
+            if (aidObj == null) {
+                call.reject("Parameter 'aid' is required");
+                return;
+            }
+
+            AidV2 aid = parseAidFromJSObject(aidObj);
+            int result = emvOpt.addAid(aid);
+            
+            if (result == 0) {
+                JSObject response = new JSObject();
+                response.put("success", true);
+                call.resolve(response);
+            } else {
+                call.reject("Add AID failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "addAid error", e);
+            call.reject("Failed to add AID: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Delete AID
+     */
+    public void deleteAid(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            String aidHex = call.getString("aid");
+            byte[] aidBytes = aidHex != null ? hexStringToBytes(aidHex) : null;
+
+            int result = emvOpt.deleteAid(aidBytes);
+            
+            if (result == 0) {
+                JSObject response = new JSObject();
+                response.put("success", true);
+                call.resolve(response);
+            } else {
+                call.reject("Delete AID failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "deleteAid error", e);
+            call.reject("Failed to delete AID: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get AID list
+     */
+    public void getAidList(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Integer paramType = call.getInt("paramType", 0);
+            
+            java.util.List<AidV2> aidList = new java.util.ArrayList<>();
+            int result = emvOpt.getAidList(paramType, aidList);
+            
+            if (result == 0) {
+                JSObject response = new JSObject();
+                JSArray aidArray = new JSArray();
+                
+                for (AidV2 aid : aidList) {
+                    JSObject aidObj = new JSObject();
+                    aidObj.put("aid", bytesToHex(aid.aid));
+                    aidObj.put("selFlag", aid.selFlag);
+                    aidObj.put("paramType", aid.paramType);
+                    aidObj.put("kernelType", aid.kernelType);
+                    aidArray.put(aidObj);
+                }
+                
+                response.put("aidList", aidArray);
+                call.resolve(response);
+            } else {
+                call.reject("Get AID list failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "getAidList error", e);
+            call.reject("Failed to get AID list: " + e.getMessage());
+        }
+    }
+
+    // ==================== CAPK Operations ====================
+
+    /**
+     * Add CAPK (Certification Authority Public Key)
+     */
+    public void addCapk(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            JSObject capkObj = call.getObject("capk");
+            if (capkObj == null) {
+                call.reject("Parameter 'capk' is required");
+                return;
+            }
+
+            CapkV2 capk = new CapkV2();
+            capk.rid = hexStringToBytes(capkObj.getString("rid", ""));
+            capk.index = (byte) capkObj.getInteger("index", 0).intValue();
+            capk.hashAlg = (byte) capkObj.getInteger("hashAlg", 1).intValue();
+            capk.rsaAlg = (byte) capkObj.getInteger("rsaAlg", 1).intValue();
+            capk.expDate = hexStringToBytes(capkObj.getString("expDate", ""));
+            capk.exponent = hexStringToBytes(capkObj.getString("exponent", ""));
+            capk.modulus = hexStringToBytes(capkObj.getString("modulus", ""));
+            capk.checkSum = hexStringToBytes(capkObj.getString("checkSum", ""));
+
+            int result = emvOpt.addCapk(capk);
+            
+            if (result == 0) {
+                JSObject response = new JSObject();
+                response.put("success", true);
+                call.resolve(response);
+            } else {
+                call.reject("Add CAPK failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "addCapk error", e);
+            call.reject("Failed to add CAPK: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Delete CAPK
+     */
+    public void deleteCapk(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            String rid = call.getString("rid");
+            Integer index = call.getInt("index");
+
+            byte[] ridBytes = rid != null ? hexStringToBytes(rid) : null;
+            int indexVal = index != null ? index : -1;
+
+            int result = emvOpt.deleteCapk(ridBytes, (byte) indexVal);
+            
+            if (result == 0) {
+                JSObject response = new JSObject();
+                response.put("success", true);
+                call.resolve(response);
+            } else {
+                call.reject("Delete CAPK failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "deleteCapk error", e);
+            call.reject("Failed to delete CAPK: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get CAPK list
+     */
+    public void getCapkList(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            java.util.List<CapkV2> capkList = new java.util.ArrayList<>();
+            int result = emvOpt.getCapkList(capkList);
+            
+            if (result == 0) {
+                JSObject response = new JSObject();
+                JSArray capkArray = new JSArray();
+                
+                for (CapkV2 capk : capkList) {
+                    JSObject capkObj = new JSObject();
+                    capkObj.put("rid", bytesToHex(capk.rid));
+                    capkObj.put("index", capk.index & 0xFF);
+                    capkObj.put("hashAlg", capk.hashAlg);
+                    capkObj.put("rsaAlg", capk.rsaAlg);
+                    capkArray.put(capkObj);
+                }
+                
+                response.put("capkList", capkArray);
+                call.resolve(response);
+            } else {
+                call.reject("Get CAPK list failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "getCapkList error", e);
+            call.reject("Failed to get CAPK list: " + e.getMessage());
+        }
+    }
+
+    // ==================== TLV Operations ====================
+
+    /**
+     * Get TLV data
+     */
+    public void getTlv(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Integer tag = call.getInt("tag");
+            if (tag == null) {
+                call.reject("Parameter 'tag' is required");
+                return;
+            }
+
+            byte[] value = new byte[512];
+            int len = emvOpt.getTlv(tag, value);
+            
+            if (len >= 0) {
+                byte[] actualValue = new byte[len];
+                System.arraycopy(value, 0, actualValue, 0, len);
+                
+                JSObject response = new JSObject();
+                response.put("value", bytesToHex(actualValue));
+                response.put("length", len);
+                call.resolve(response);
+            } else {
+                call.reject("Get TLV failed, error code: " + len);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "getTlv error", e);
+            call.reject("Failed to get TLV: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Set TLV data
+     */
+    public void setTlv(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Integer tag = call.getInt("tag");
+            String value = call.getString("value");
+            
+            if (tag == null || value == null) {
+                call.reject("Parameters 'tag' and 'value' are required");
+                return;
+            }
+
+            byte[] valueBytes = hexStringToBytes(value);
+            int result = emvOpt.setTlv(tag, valueBytes);
+            
+            if (result == 0) {
+                JSObject response = new JSObject();
+                response.put("success", true);
+                call.resolve(response);
+            } else {
+                call.reject("Set TLV failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "setTlv error", e);
+            call.reject("Failed to set TLV: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get TLV list
+     */
+    public void getTlvList(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            JSArray tags = call.getArray("tags");
+            if (tags == null) {
+                call.reject("Parameter 'tags' is required");
+                return;
+            }
+
+            String[] tagStrings = new String[tags.length()];
+            for (int i = 0; i < tags.length(); i++) {
+                tagStrings[i] = tags.getString(i);
+            }
+
+            String[] values = new String[tags.length()];
+            int result = emvOpt.getTlvList(tagStrings, values);
+            
+            if (result == 0) {
+                JSObject response = new JSObject();
+                JSArray valueArray = new JSArray();
+                for (String v : values) {
+                    valueArray.put(v != null ? v : "");
+                }
+                response.put("values", valueArray);
+                call.resolve(response);
+            } else {
+                call.reject("Get TLV list failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "getTlvList error", e);
+            call.reject("Failed to get TLV list: " + e.getMessage());
+        }
+    }
+
+    // ==================== Terminal Parameters ====================
+
+    /**
+     * Set terminal parameters
+     */
+    public void setTermParam(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            JSObject params = call.getObject("params");
+            if (params == null) {
+                call.reject("Parameter 'params' is required");
+                return;
+            }
+
+            Bundle termParams = new Bundle();
+            
+            if (params.has("terminalType")) {
+                termParams.putString("terminalType", params.getString("terminalType"));
+            }
+            if (params.has("terminalCapabilities")) {
+                termParams.putString("terminalCapabilities", params.getString("terminalCapabilities"));
+            }
+            if (params.has("additionalTerminalCapabilities")) {
+                termParams.putString("additionalTerminalCapabilities", params.getString("additionalTerminalCapabilities"));
+            }
+            if (params.has("countryCode")) {
+                termParams.putString("countryCode", params.getString("countryCode"));
+            }
+            if (params.has("currencyCode")) {
+                termParams.putString("currencyCode", params.getString("currencyCode"));
+            }
+            if (params.has("merchantCategoryCode")) {
+                termParams.putString("merchantCategoryCode", params.getString("merchantCategoryCode"));
+            }
+            if (params.has("merchantIdentifier")) {
+                termParams.putString("merchantIdentifier", params.getString("merchantIdentifier"));
+            }
+            if (params.has("terminalIdentifier")) {
+                termParams.putString("terminalIdentifier", params.getString("terminalIdentifier"));
+            }
+
+            int result = emvOpt.setTermParamEx(termParams);
+            
+            if (result == 0) {
+                JSObject response = new JSObject();
+                response.put("success", true);
+                call.resolve(response);
+            } else {
+                call.reject("Set terminal parameters failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "setTermParam error", e);
+            call.reject("Failed to set terminal parameters: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get terminal parameters
+     */
+    public void getTermParam(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Bundle termParams = new Bundle();
+            int result = emvOpt.getTermParamEx(termParams);
+            
+            if (result == 0) {
+                JSObject response = new JSObject();
+                
+                for (String key : termParams.keySet()) {
+                    Object value = termParams.get(key);
+                    if (value instanceof String) {
+                        response.put(key, (String) value);
+                    } else if (value instanceof Integer) {
+                        response.put(key, (Integer) value);
+                    }
+                }
+                
+                call.resolve(response);
+            } else {
+                call.reject("Get terminal parameters failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "getTermParam error", e);
+            call.reject("Failed to get terminal parameters: " + e.getMessage());
+        }
+    }
+
+    // ==================== EMV Process Control ====================
+
+    /**
+     * Initialize EMV process
+     */
+    public void initEmvProcess(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            int result = emvOpt.initEmvProcess();
+            
+            if (result == 0) {
+                JSObject response = new JSObject();
+                response.put("success", true);
+                call.resolve(response);
+            } else {
+                call.reject("Init EMV process failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "initEmvProcess error", e);
+            call.reject("Failed to init EMV process: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Import app selection result
+     */
+    public void importAppSelect(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Integer index = call.getInt("index", 0);
+            emvOpt.importAppSelect(index);
+            
+            JSObject response = new JSObject();
+            response.put("success", true);
+            call.resolve(response);
+        } catch (Exception e) {
+            Log.e(TAG, "importAppSelect error", e);
+            call.reject("Failed to import app select: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Import final app selection status
+     */
+    public void importAppFinalSelectStatus(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Integer status = call.getInt("status", 0);
+            emvOpt.importAppFinalSelectStatus(status);
+            
+            JSObject response = new JSObject();
+            response.put("success", true);
+            call.resolve(response);
+        } catch (Exception e) {
+            Log.e(TAG, "importAppFinalSelectStatus error", e);
+            call.reject("Failed to import app final select status: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Import PIN input status
+     */
+    public void importPinInputStatus(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Integer pinType = call.getInt("pinType", 0);
+            Integer status = call.getInt("status", 0);
+            
+            emvOpt.importPinInputStatus(pinType, status);
+            
+            JSObject response = new JSObject();
+            response.put("success", true);
+            call.resolve(response);
+        } catch (Exception e) {
+            Log.e(TAG, "importPinInputStatus error", e);
+            call.reject("Failed to import PIN input status: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Import online processing status
+     */
+    public void importOnlineProcStatus(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Integer status = call.getInt("status", 0);
+            JSArray responseTags = call.getArray("responseTags");
+            JSArray responseValues = call.getArray("responseValues");
+
+            String[] tags = new String[0];
+            String[] values = new String[0];
+            
+            if (responseTags != null && responseValues != null) {
+                tags = new String[responseTags.length()];
+                values = new String[responseValues.length()];
+                for (int i = 0; i < responseTags.length(); i++) {
+                    tags[i] = responseTags.getString(i);
+                    values[i] = responseValues.getString(i);
+                }
+            }
+
+            byte[] outData = new byte[512];
+            emvOpt.importOnlineProcStatus(status, tags, values, outData);
+            
+            JSObject response = new JSObject();
+            response.put("success", true);
+            call.resolve(response);
+        } catch (Exception e) {
+            Log.e(TAG, "importOnlineProcStatus error", e);
+            call.reject("Failed to import online processing status: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Import signature status
+     */
+    public void importSignatureStatus(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Integer status = call.getInt("status", 0);
+            emvOpt.importSignatureStatus(status);
+            
+            JSObject response = new JSObject();
+            response.put("success", true);
+            call.resolve(response);
+        } catch (Exception e) {
+            Log.e(TAG, "importSignatureStatus error", e);
+            call.reject("Failed to import signature status: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Import certificate verification status
+     */
+    public void importCertStatus(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Integer status = call.getInt("status", 0);
+            emvOpt.importCertStatus(status);
+            
+            JSObject response = new JSObject();
+            response.put("success", true);
+            call.resolve(response);
+        } catch (Exception e) {
+            Log.e(TAG, "importCertStatus error", e);
+            call.reject("Failed to import cert status: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Import card number confirmation status
+     */
+    public void importCardNoStatus(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Integer status = call.getInt("status", 0);
+            emvOpt.importCardNoStatus(status);
+            
+            JSObject response = new JSObject();
+            response.put("success", true);
+            call.resolve(response);
+        } catch (Exception e) {
+            Log.e(TAG, "importCardNoStatus error", e);
+            call.reject("Failed to import card number status: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Import data exchange status
+     */
+    public void importDataExchangeStatus(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Integer status = call.getInt("status", 0);
+            emvOpt.importDataExchangeStatus(status);
+            
+            JSObject response = new JSObject();
+            response.put("success", true);
+            call.resolve(response);
+        } catch (Exception e) {
+            Log.e(TAG, "importDataExchangeStatus error", e);
+            call.reject("Failed to import data exchange status: " + e.getMessage());
+        }
+    }
+
+    // ==================== DRL Operations ====================
+
+    /**
+     * Add DRL (Data Recovery List)
+     */
+    public void addDrl(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            JSObject drlObj = call.getObject("drl");
+            if (drlObj == null) {
+                call.reject("Parameter 'drl' is required");
+                return;
+            }
+
+            DrlV2 drl = new DrlV2();
+            drl.aid = hexStringToBytes(drlObj.getString("aid", ""));
+            drl.drlType = (byte) drlObj.getInteger("drlType", 0).intValue();
+            drl.programId = hexStringToBytes(drlObj.getString("programId", ""));
+            drl.transactionType = (byte) drlObj.getInteger("transactionType", 0).intValue();
+
+            int result = emvOpt.addDrl(drl);
+            
+            if (result == 0) {
+                JSObject response = new JSObject();
+                response.put("success", true);
+                call.resolve(response);
+            } else {
+                call.reject("Add DRL failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "addDrl error", e);
+            call.reject("Failed to add DRL: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Delete DRL
+     */
+    public void deleteDrl(PluginCall call) {
+        if (emvOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            String aid = call.getString("aid");
+            byte[] aidBytes = aid != null ? hexStringToBytes(aid) : null;
+
+            int result = emvOpt.deleteDrl(aidBytes);
+            
+            if (result == 0) {
+                JSObject response = new JSObject();
+                response.put("success", true);
+                call.resolve(response);
+            } else {
+                call.reject("Delete DRL failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "deleteDrl error", e);
+            call.reject("Failed to delete DRL: " + e.getMessage());
+        }
+    }
+
+    // ==================== Utility Methods ====================
+
+    /**
+     * Parse AidV2 from JSObject
+     */
+    private AidV2 parseAidFromJSObject(JSObject aidObj) {
+        AidV2 aid = new AidV2();
+        aid.aid = hexStringToBytes(aidObj.getString("aid", ""));
+        aid.selFlag = (byte) aidObj.getInteger("selFlag", 0).intValue();
+        aid.targetPer = (byte) aidObj.getInteger("targetPer", 0).intValue();
+        aid.maxTargetPer = (byte) aidObj.getInteger("maxTargetPer", 0).intValue();
+        aid.floorLimit = hexStringToBytes(aidObj.getString("floorLimit", "00000000"));
+        aid.threshold = hexStringToBytes(aidObj.getString("threshold", "00000000"));
+        aid.TACDenial = hexStringToBytes(aidObj.getString("TACDenial", "0000000000"));
+        aid.TACOnline = hexStringToBytes(aidObj.getString("TACOnline", "0000000000"));
+        aid.TACDefault = hexStringToBytes(aidObj.getString("TACDefault", "0000000000"));
+        aid.AcquierId = hexStringToBytes(aidObj.getString("AcquierId", "000000000000"));
+        aid.dDOL = hexStringToBytes(aidObj.getString("dDOL", "9F3704"));
+        aid.tDOL = hexStringToBytes(aidObj.getString("tDOL", ""));
+        aid.version = hexStringToBytes(aidObj.getString("version", "0001"));
+        aid.rMDLen = (byte) aidObj.getInteger("rMDLen", 0).intValue();
+        aid.kernelType = (byte) aidObj.getInteger("kernelType", 0).intValue();
+        aid.paramType = (byte) aidObj.getInteger("paramType", 0).intValue();
+        aid.ttq = hexStringToBytes(aidObj.getString("ttq", ""));
+        return aid;
+    }
+
+    /**
+     * Convert byte array to hex string
+     */
+    private String bytesToHex(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02X", b));
+        }
+        return sb.toString();
+    }
 }
 

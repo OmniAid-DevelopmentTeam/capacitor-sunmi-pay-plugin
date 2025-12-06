@@ -382,6 +382,203 @@ public class SunmiPayPlugin extends Plugin {
         cardModule.mifareDecValue(call);
     }
 
+    @PluginMethod
+    public void mifareIncValueDx(PluginCall call) {
+        cardModule.mifareIncValueDx(call);
+    }
+
+    @PluginMethod
+    public void mifareDecValueDx(PluginCall call) {
+        cardModule.mifareDecValueDx(call);
+    }
+
+    @PluginMethod
+    public void mifareTransfer(PluginCall call) {
+        cardModule.mifareTransfer(call);
+    }
+
+    @PluginMethod
+    public void mifareRestore(PluginCall call) {
+        cardModule.mifareRestore(call);
+    }
+
+    // Mifare Ultralight C
+    @PluginMethod
+    public void ultralightCAuth(PluginCall call) {
+        cardModule.ultralightCAuth(call);
+    }
+
+    @PluginMethod
+    public void ultralightReadPage(PluginCall call) {
+        cardModule.ultralightReadPage(call);
+    }
+
+    @PluginMethod
+    public void ultralightWritePage(PluginCall call) {
+        cardModule.ultralightWritePage(call);
+    }
+
+    // Mifare Plus
+    @PluginMethod
+    public void mifarePlusAuth(PluginCall call) {
+        cardModule.mifarePlusAuth(call);
+    }
+
+    @PluginMethod
+    public void mifarePlusAESAuth(PluginCall call) {
+        cardModule.mifarePlusAESAuth(call);
+    }
+
+    @PluginMethod
+    public void mifarePlusReadEncBlock(PluginCall call) {
+        cardModule.mifarePlusReadEncBlock(call);
+    }
+
+    @PluginMethod
+    public void mifarePlusWriteEncBlock(PluginCall call) {
+        cardModule.mifarePlusWriteEncBlock(call);
+    }
+
+    @PluginMethod
+    public void mifarePlusEncIncValue(PluginCall call) {
+        cardModule.mifarePlusEncIncValue(call);
+    }
+
+    @PluginMethod
+    public void mifarePlusEncDecValue(PluginCall call) {
+        cardModule.mifarePlusEncDecValue(call);
+    }
+
+    // SLE Card Operations
+    @PluginMethod
+    public void sleVerifyPwd(PluginCall call) {
+        cardModule.sleVerifyPwd(call);
+    }
+
+    @PluginMethod
+    public void sleChangePwd(PluginCall call) {
+        cardModule.sleChangePwd(call);
+    }
+
+    @PluginMethod
+    public void sleReadData(PluginCall call) {
+        cardModule.sleReadData(call);
+    }
+
+    @PluginMethod
+    public void sleWriteData(PluginCall call) {
+        cardModule.sleWriteData(call);
+    }
+
+    @PluginMethod
+    public void sle4442ReadProtectionData(PluginCall call) {
+        cardModule.sle4442ReadProtectionData(call);
+    }
+
+    @PluginMethod
+    public void sle4442WriteProtectionData(PluginCall call) {
+        cardModule.sle4442WriteProtectionData(call);
+    }
+
+    // AT24CXX Card Operations
+    @PluginMethod
+    public void at24cxxReadData(PluginCall call) {
+        cardModule.at24cxxReadData(call);
+    }
+
+    @PluginMethod
+    public void at24cxxWriteData(PluginCall call) {
+        cardModule.at24cxxWriteData(call);
+    }
+
+    // AT88SC Card Operations
+    @PluginMethod
+    public void at88scVerifyPwd(PluginCall call) {
+        cardModule.at88scVerifyPwd(call);
+    }
+
+    @PluginMethod
+    public void at88scChangePwd(PluginCall call) {
+        cardModule.at88scChangePwd(call);
+    }
+
+    @PluginMethod
+    public void at88scReadData(PluginCall call) {
+        cardModule.at88scReadData(call);
+    }
+
+    @PluginMethod
+    public void at88scWriteData(PluginCall call) {
+        cardModule.at88scWriteData(call);
+    }
+
+    @PluginMethod
+    public void at88scReadFuse(PluginCall call) {
+        cardModule.at88scReadFuse(call);
+    }
+
+    @PluginMethod
+    public void at88scBurnFuse(PluginCall call) {
+        cardModule.at88scBurnFuse(call);
+    }
+
+    @PluginMethod
+    public void at88scAuth(PluginCall call) {
+        cardModule.at88scAuth(call);
+    }
+
+    // CTX512B Card Operations
+    @PluginMethod
+    public void ctx512bVerifyPwd(PluginCall call) {
+        cardModule.ctx512bVerifyPwd(call);
+    }
+
+    @PluginMethod
+    public void ctx512bChangePwd(PluginCall call) {
+        cardModule.ctx512bChangePwd(call);
+    }
+
+    @PluginMethod
+    public void ctx512bReadData(PluginCall call) {
+        cardModule.ctx512bReadData(call);
+    }
+
+    @PluginMethod
+    public void ctx512bWriteData(PluginCall call) {
+        cardModule.ctx512bWriteData(call);
+    }
+
+    @PluginMethod
+    public void ctx512ReadBlock(PluginCall call) {
+        cardModule.ctx512ReadBlock(call);
+    }
+
+    @PluginMethod
+    public void ctx512WriteBlock(PluginCall call) {
+        cardModule.ctx512WriteBlock(call);
+    }
+
+    @PluginMethod
+    public void ctx512UpdateBlock(PluginCall call) {
+        cardModule.ctx512UpdateBlock(call);
+    }
+
+    @PluginMethod
+    public void ctx512GetSignature(PluginCall call) {
+        cardModule.ctx512GetSignature(call);
+    }
+
+    @PluginMethod
+    public void ctx512MultiReadBlock(PluginCall call) {
+        cardModule.ctx512MultiReadBlock(call);
+    }
+
+    // NFC Pass Through
+    @PluginMethod
+    public void nfcPassThrough(PluginCall call) {
+        cardModule.nfcPassThrough(call);
+    }
+
     // ==================== PinPad Operation Module Methods ====================
 
     @PluginMethod
@@ -429,6 +626,49 @@ public class SunmiPayPlugin extends Plugin {
         pinPadModule.getPinBlock(call);
     }
 
+    // Anti-Exhaustive Protection
+    @PluginMethod
+    public void resetAntiExhaust(PluginCall call) {
+        pinPadModule.resetAntiExhaust(call);
+    }
+
+    @PluginMethod
+    public void getAntiExhaustStatus(PluginCall call) {
+        pinPadModule.getAntiExhaustStatus(call);
+    }
+
+    @PluginMethod
+    public void setAntiExhaustConfig(PluginCall call) {
+        pinPadModule.setAntiExhaustConfig(call);
+    }
+
+    // Visual Impairment Mode
+    @PluginMethod
+    public void setVisualImpairmentMode(PluginCall call) {
+        pinPadModule.setVisualImpairmentMode(call);
+    }
+
+    @PluginMethod
+    public void getVisualImpairmentMode(PluginCall call) {
+        pinPadModule.getVisualImpairmentMode(call);
+    }
+
+    // PinPad Info
+    @PluginMethod
+    public void getPinPadSerialNo(PluginCall call) {
+        pinPadModule.getPinPadSerialNo(call);
+    }
+
+    @PluginMethod
+    public void getPinPadVersion(PluginCall call) {
+        pinPadModule.getPinPadVersion(call);
+    }
+
+    @PluginMethod
+    public void isPinPadFeatureSupported(PluginCall call) {
+        pinPadModule.isPinPadFeatureSupported(call);
+    }
+
     // ==================== Security Operation Module Methods ====================
 
     @PluginMethod
@@ -452,8 +692,220 @@ public class SunmiPayPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void deleteKeyEx(PluginCall call) {
+        securityModule.deleteKeyEx(call);
+    }
+
+    @PluginMethod
+    public void getKeyCheckValue(PluginCall call) {
+        securityModule.getKeyCheckValue(call);
+    }
+
+    @PluginMethod
+    public void getKeyLength(PluginCall call) {
+        securityModule.getKeyLength(call);
+    }
+
+    @PluginMethod
     public void isKeyExist(PluginCall call) {
         securityModule.isKeyExist(call);
+    }
+
+    // MAC Operations
+    @PluginMethod
+    public void calcMac(PluginCall call) {
+        securityModule.calcMac(call);
+    }
+
+    @PluginMethod
+    public void calcMacEx(PluginCall call) {
+        securityModule.calcMacEx(call);
+    }
+
+    @PluginMethod
+    public void verifyMac(PluginCall call) {
+        securityModule.verifyMac(call);
+    }
+
+    // Data Encryption/Decryption
+    @PluginMethod
+    public void dataEncrypt(PluginCall call) {
+        securityModule.dataEncrypt(call);
+    }
+
+    @PluginMethod
+    public void dataDecrypt(PluginCall call) {
+        securityModule.dataDecrypt(call);
+    }
+
+    @PluginMethod
+    public void dataEncryptEx(PluginCall call) {
+        securityModule.dataEncryptEx(call);
+    }
+
+    @PluginMethod
+    public void dataDecryptEx(PluginCall call) {
+        securityModule.dataDecryptEx(call);
+    }
+
+    // DUKPT Operations
+    @PluginMethod
+    public void saveKeyDukpt(PluginCall call) {
+        securityModule.saveKeyDukpt(call);
+    }
+
+    @PluginMethod
+    public void saveKeyDukptAES(PluginCall call) {
+        securityModule.saveKeyDukptAES(call);
+    }
+
+    @PluginMethod
+    public void calcMacDukpt(PluginCall call) {
+        securityModule.calcMacDukpt(call);
+    }
+
+    @PluginMethod
+    public void calcMacDukptEx(PluginCall call) {
+        securityModule.calcMacDukptEx(call);
+    }
+
+    @PluginMethod
+    public void verifyMacDukpt(PluginCall call) {
+        securityModule.verifyMacDukpt(call);
+    }
+
+    @PluginMethod
+    public void verifyMacDukptEx(PluginCall call) {
+        securityModule.verifyMacDukptEx(call);
+    }
+
+    @PluginMethod
+    public void dataEncryptDukpt(PluginCall call) {
+        securityModule.dataEncryptDukpt(call);
+    }
+
+    @PluginMethod
+    public void dataDecryptDukpt(PluginCall call) {
+        securityModule.dataDecryptDukpt(call);
+    }
+
+    @PluginMethod
+    public void dataEncryptDukptEx(PluginCall call) {
+        securityModule.dataEncryptDukptEx(call);
+    }
+
+    @PluginMethod
+    public void dataDecryptDukptEx(PluginCall call) {
+        securityModule.dataDecryptDukptEx(call);
+    }
+
+    @PluginMethod
+    public void dukptIncreaseKSN(PluginCall call) {
+        securityModule.dukptIncreaseKSN(call);
+    }
+
+    @PluginMethod
+    public void dukptCurrentKSN(PluginCall call) {
+        securityModule.dukptCurrentKSN(call);
+    }
+
+    @PluginMethod
+    public void dukptGetInitKSN(PluginCall call) {
+        securityModule.dukptGetInitKSN(call);
+    }
+
+    // RSA Operations
+    @PluginMethod
+    public void generateRSAKeypair(PluginCall call) {
+        securityModule.generateRSAKeypair(call);
+    }
+
+    @PluginMethod
+    public void generateRSAKeypairEx(PluginCall call) {
+        securityModule.generateRSAKeypairEx(call);
+    }
+
+    @PluginMethod
+    public void injectRSAKeyEx(PluginCall call) {
+        securityModule.injectRSAKeyEx(call);
+    }
+
+    @PluginMethod
+    public void readRSAKey(PluginCall call) {
+        securityModule.readRSAKey(call);
+    }
+
+    @PluginMethod
+    public void rsaEncryptOrDecryptData(PluginCall call) {
+        securityModule.rsaEncryptOrDecryptData(call);
+    }
+
+    @PluginMethod
+    public void rsaSignData(PluginCall call) {
+        securityModule.rsaSignData(call);
+    }
+
+    @PluginMethod
+    public void rsaVerifySignature(PluginCall call) {
+        securityModule.rsaVerifySignature(call);
+    }
+
+    // SM2 Operations
+    @PluginMethod
+    public void generateSM2Keypair(PluginCall call) {
+        securityModule.generateSM2Keypair(call);
+    }
+
+    @PluginMethod
+    public void injectSM2Key(PluginCall call) {
+        securityModule.injectSM2Key(call);
+    }
+
+    @PluginMethod
+    public void readSM2Key(PluginCall call) {
+        securityModule.readSM2Key(call);
+    }
+
+    @PluginMethod
+    public void sm2Sign(PluginCall call) {
+        securityModule.sm2Sign(call);
+    }
+
+    @PluginMethod
+    public void sm2VerifySign(PluginCall call) {
+        securityModule.sm2VerifySign(call);
+    }
+
+    @PluginMethod
+    public void sm2EncryptData(PluginCall call) {
+        securityModule.sm2EncryptData(call);
+    }
+
+    @PluginMethod
+    public void sm2DecryptData(PluginCall call) {
+        securityModule.sm2DecryptData(call);
+    }
+
+    // Hash Operations
+    @PluginMethod
+    public void calcSecHash(PluginCall call) {
+        securityModule.calcSecHash(call);
+    }
+
+    // Key Injection Operations
+    @PluginMethod
+    public void injectPlaintextKey(PluginCall call) {
+        securityModule.injectPlaintextKey(call);
+    }
+
+    @PluginMethod
+    public void injectCiphertextKey(PluginCall call) {
+        securityModule.injectCiphertextKey(call);
+    }
+
+    @PluginMethod
+    public void saveTR31Key(PluginCall call) {
+        securityModule.saveTR31Key(call);
     }
 
     // ==================== EMV Operation Module Methods ====================
@@ -471,6 +923,122 @@ public class SunmiPayPlugin extends Plugin {
     @PluginMethod
     public void abortTransact(PluginCall call) {
         emvModule.abortTransact(call);
+    }
+
+    // AID Operations
+    @PluginMethod
+    public void addAid(PluginCall call) {
+        emvModule.addAid(call);
+    }
+
+    @PluginMethod
+    public void deleteAid(PluginCall call) {
+        emvModule.deleteAid(call);
+    }
+
+    @PluginMethod
+    public void getAidList(PluginCall call) {
+        emvModule.getAidList(call);
+    }
+
+    // CAPK Operations
+    @PluginMethod
+    public void addCapk(PluginCall call) {
+        emvModule.addCapk(call);
+    }
+
+    @PluginMethod
+    public void deleteCapk(PluginCall call) {
+        emvModule.deleteCapk(call);
+    }
+
+    @PluginMethod
+    public void getCapkList(PluginCall call) {
+        emvModule.getCapkList(call);
+    }
+
+    // TLV Operations
+    @PluginMethod
+    public void getTlv(PluginCall call) {
+        emvModule.getTlv(call);
+    }
+
+    @PluginMethod
+    public void setTlv(PluginCall call) {
+        emvModule.setTlv(call);
+    }
+
+    @PluginMethod
+    public void getTlvList(PluginCall call) {
+        emvModule.getTlvList(call);
+    }
+
+    // Terminal Parameters
+    @PluginMethod
+    public void setTermParam(PluginCall call) {
+        emvModule.setTermParam(call);
+    }
+
+    @PluginMethod
+    public void getTermParam(PluginCall call) {
+        emvModule.getTermParam(call);
+    }
+
+    // EMV Process Control
+    @PluginMethod
+    public void initEmvProcess(PluginCall call) {
+        emvModule.initEmvProcess(call);
+    }
+
+    @PluginMethod
+    public void importAppSelect(PluginCall call) {
+        emvModule.importAppSelect(call);
+    }
+
+    @PluginMethod
+    public void importAppFinalSelectStatus(PluginCall call) {
+        emvModule.importAppFinalSelectStatus(call);
+    }
+
+    @PluginMethod
+    public void importPinInputStatus(PluginCall call) {
+        emvModule.importPinInputStatus(call);
+    }
+
+    @PluginMethod
+    public void importOnlineProcStatus(PluginCall call) {
+        emvModule.importOnlineProcStatus(call);
+    }
+
+    @PluginMethod
+    public void importSignatureStatus(PluginCall call) {
+        emvModule.importSignatureStatus(call);
+    }
+
+    @PluginMethod
+    public void importCertStatus(PluginCall call) {
+        emvModule.importCertStatus(call);
+    }
+
+    @PluginMethod
+    public void importCardNoStatus(PluginCall call) {
+        emvModule.importCardNoStatus(call);
+    }
+
+    @PluginMethod
+    public void importDataExchangeStatus(PluginCall call) {
+        emvModule.importDataExchangeStatus(call);
+    }
+
+    // DRL Operations
+    @PluginMethod
+    public void addDrl(PluginCall call) {
+        emvModule.addDrl(call);
+    }
+
+    @PluginMethod
+    public void deleteDrl(PluginCall call) {
+        emvModule.deleteDrl(call);
     }
 
     // ==================== Printer Operation Module Methods ====================
