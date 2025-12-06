@@ -1,5 +1,12 @@
 package com.sunmi.capacitor.pay;
 
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.graphics.Bitmap;
+import android.os.IBinder;
+import android.os.RemoteException;
 import android.util.Log;
 
 import com.getcapacitor.JSObject;
@@ -20,6 +27,12 @@ import com.sunmi.capacitor.pay.modules.CardModule;
 import com.sunmi.capacitor.pay.modules.PinPadModule;
 import com.sunmi.capacitor.pay.modules.SecurityModule;
 import com.sunmi.capacitor.pay.modules.EMVModule;
+import com.sunmi.peripheral.printer.InnerPrinterCallback;
+import com.sunmi.peripheral.printer.InnerPrinterException;
+import com.sunmi.peripheral.printer.InnerPrinterManager;
+import com.sunmi.peripheral.printer.InnerResultCallback;
+import com.sunmi.peripheral.printer.SunmiPrinterService;
+import com.sunmi.peripheral.printer.WoyouConsts;
 
 /**
  * Sunmi Payment SDK V2 Capacitor Plugin
@@ -49,6 +62,10 @@ public class SunmiPayPlugin extends Plugin {
     private PinPadModule pinPadModule;
     private SecurityModule securityModule;
     private EMVModule emvModule;
+    
+    // Sunmi Printer Service (for text printing)
+    private SunmiPrinterService printerService;
+    private boolean printerServiceConnected = false;
 
     @Override
     public void load() {
@@ -63,7 +80,65 @@ public class SunmiPayPlugin extends Plugin {
         
         // Auto-initialize SDK on plugin load
         initPaySDK(null);
+        
+        // Connect to Sunmi Printer Service
+        connectPrinterService();
     }
+    
+    /**
+     * Connect to Sunmi Printer Service for text printing
+     */
+    private void connectPrinterService() {
+        try {
+            boolean ret = InnerPrinterManager.getInstance().bindService(getContext(), printerCallback);
+            if (!ret) {
+                Log.w(TAG, "No Sunmi printer available on this device");
+            }
+        } catch (InnerPrinterException e) {
+            Log.e(TAG, "Failed to connect to Printer Service", e);
+        }
+    }
+    
+    private InnerPrinterCallback printerCallback = new InnerPrinterCallback() {
+        @Override
+        protected void onConnected(SunmiPrinterService service) {
+            printerService = service;
+            printerServiceConnected = true;
+            Log.d(TAG, "Connected to Sunmi Printer Service");
+        }
+
+        @Override
+        protected void onDisconnected() {
+            printerService = null;
+            printerServiceConnected = false;
+            Log.d(TAG, "Disconnected from Sunmi Printer Service");
+        }
+    };
+    
+    /**
+     * Inner result callback for printer operations
+     */
+    private InnerResultCallback innerResultCallback = new InnerResultCallback() {
+        @Override
+        public void onRunResult(boolean isSuccess) throws RemoteException {
+            Log.d(TAG, "Printer result: " + isSuccess);
+        }
+
+        @Override
+        public void onReturnString(String result) throws RemoteException {
+            Log.d(TAG, "Printer return: " + result);
+        }
+
+        @Override
+        public void onRaiseException(int code, String msg) throws RemoteException {
+            Log.e(TAG, "Printer exception: " + code + " - " + msg);
+        }
+
+        @Override
+        public void onPrintResult(int code, String msg) throws RemoteException {
+            Log.d(TAG, "Print result: " + code + " - " + msg);
+        }
+    };
 
     // ==================== SDK Lifecycle Methods ====================
 
@@ -1042,11 +1117,12 @@ public class SunmiPayPlugin extends Plugin {
     }
 
     // ==================== Printer Operation Module Methods ====================
+    // Using SunmiPrinterService from printerlibrary for high-level printing API
 
     @PluginMethod
     public void printText(PluginCall call) {
-        if (printerOpt == null) {
-            call.reject("SDK not initialized");
+        if (!printerServiceConnected || printerService == null) {
+            call.reject("Print service not connected");
             return;
         }
 
@@ -1057,9 +1133,7 @@ public class SunmiPayPlugin extends Plugin {
                 return;
             }
 
-            // Note: PrinterOptV2 uses different API (printOpen/printPointLine/printClose)
-            // TODO: Implement proper printing with PrinterOptV2
-            call.reject("Printer methods not yet implemented for SDK v2");
+            printerService.printText(text, innerResultCallback);
             
             JSObject result = new JSObject();
             result.put("success", true);
@@ -1069,27 +1143,98 @@ public class SunmiPayPlugin extends Plugin {
             call.reject("Failed to print text: " + e.getMessage());
         }
     }
+    
+    @PluginMethod
+    public void printTextWithFormat(PluginCall call) {
+        if (!printerServiceConnected || printerService == null) {
+            call.reject("Print service not connected");
+            return;
+        }
+
+        try {
+            String text = call.getString("text");
+            if (text == null) {
+                call.reject("Parameter 'text' is required");
+                return;
+            }
+            
+            float fontSize = call.getFloat("fontSize", 24f);
+            boolean isBold = call.getBoolean("isBold", false);
+            boolean isUnderline = call.getBoolean("isUnderline", false);
+            int align = call.getInt("align", 0); // 0: left, 1: center, 2: right
+            
+            // Set alignment
+            printerService.setAlignment(align, innerResultCallback);
+            
+            // Set bold style
+            try {
+                printerService.setPrinterStyle(WoyouConsts.ENABLE_BOLD, 
+                    isBold ? WoyouConsts.ENABLE : WoyouConsts.DISABLE);
+            } catch (RemoteException e) {
+                // Fallback: use ESC commands for bold
+                if (isBold) {
+                    printerService.sendRAWData(new byte[]{0x1B, 0x45, 0x01}, innerResultCallback);
+                } else {
+                    printerService.sendRAWData(new byte[]{0x1B, 0x45, 0x00}, innerResultCallback);
+                }
+            }
+            
+            // Set underline style
+            try {
+                printerService.setPrinterStyle(WoyouConsts.ENABLE_UNDERLINE, 
+                    isUnderline ? WoyouConsts.ENABLE : WoyouConsts.DISABLE);
+            } catch (RemoteException e) {
+                // Fallback: use ESC commands for underline
+                if (isUnderline) {
+                    printerService.sendRAWData(new byte[]{0x1B, 0x2D, 0x01}, innerResultCallback);
+                } else {
+                    printerService.sendRAWData(new byte[]{0x1B, 0x2D, 0x00}, innerResultCallback);
+                }
+            }
+            
+            // Print with font size
+            printerService.printTextWithFont(text, "", fontSize, innerResultCallback);
+            
+            // Reset styles
+            try {
+                printerService.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE);
+                printerService.setPrinterStyle(WoyouConsts.ENABLE_UNDERLINE, WoyouConsts.DISABLE);
+            } catch (RemoteException e) {
+                printerService.sendRAWData(new byte[]{0x1B, 0x45, 0x00}, innerResultCallback);
+                printerService.sendRAWData(new byte[]{0x1B, 0x2D, 0x00}, innerResultCallback);
+            }
+            
+            // Reset alignment to left
+            printerService.setAlignment(0, innerResultCallback);
+            
+            JSObject result = new JSObject();
+            result.put("success", true);
+            call.resolve(result);
+        } catch (Exception e) {
+            Log.e(TAG, "printTextWithFormat error", e);
+            call.reject("Failed to print text: " + e.getMessage());
+        }
+    }
 
     @PluginMethod
     public void printBarcode(PluginCall call) {
-        if (printerOpt == null) {
-            call.reject("SDK not initialized");
+        if (!printerServiceConnected || printerService == null) {
+            call.reject("Print service not connected");
             return;
         }
 
         try {
             String data = call.getString("data");
-            Integer barcodeType = call.getInt("barcodeType", 8); // CODE128 default
-            Integer width = call.getInt("width", 2);
-            Integer height = call.getInt("height", 100);
+            int barcodeType = call.getInt("barcodeType", 8); // CODE128 default
+            int width = call.getInt("width", 2);
+            int height = call.getInt("height", 100);
 
             if (data == null) {
                 call.reject("Parameter 'data' is required");
                 return;
             }
 
-            // Note: PrinterOptV2 uses different API
-            call.reject("Printer methods not yet implemented for SDK v2");
+            printerService.printBarCode(data, barcodeType, height, width, 2, innerResultCallback);
             
             JSObject result = new JSObject();
             result.put("success", true);
@@ -1102,23 +1247,22 @@ public class SunmiPayPlugin extends Plugin {
 
     @PluginMethod
     public void printQRCode(PluginCall call) {
-        if (printerOpt == null) {
-            call.reject("SDK not initialized");
+        if (!printerServiceConnected || printerService == null) {
+            call.reject("Print service not connected");
             return;
         }
 
         try {
             String data = call.getString("data");
-            Integer size = call.getInt("size", 8);
-            Integer errorLevel = call.getInt("errorLevel", 1);
+            int size = call.getInt("size", 8);
+            int errorLevel = call.getInt("errorLevel", 1);
 
             if (data == null) {
                 call.reject("Parameter 'data' is required");
                 return;
             }
 
-            // Note: PrinterOptV2 uses different API
-            call.reject("Printer methods not yet implemented for SDK v2");
+            printerService.printQRCode(data, size, errorLevel, innerResultCallback);
             
             JSObject result = new JSObject();
             result.put("success", true);
@@ -1131,16 +1275,15 @@ public class SunmiPayPlugin extends Plugin {
 
     @PluginMethod
     public void feedPaper(PluginCall call) {
-        if (printerOpt == null) {
-            call.reject("SDK not initialized");
+        if (!printerServiceConnected || printerService == null) {
+            call.reject("Print service not connected");
             return;
         }
 
         try {
-            Integer lines = call.getInt("lines", 3);
+            int lines = call.getInt("lines", 3);
             
-            // Note: PrinterOptV2 uses printFeedPaper(int lines)
-            printerOpt.printFeedPaper(lines);
+            printerService.lineWrap(lines, innerResultCallback);
             
             JSObject result = new JSObject();
             result.put("success", true);
@@ -1153,14 +1296,13 @@ public class SunmiPayPlugin extends Plugin {
 
     @PluginMethod
     public void cutPaper(PluginCall call) {
-        if (printerOpt == null) {
-            call.reject("SDK not initialized");
+        if (!printerServiceConnected || printerService == null) {
+            call.reject("Print service not connected");
             return;
         }
 
         try {
-            // Note: PrinterOptV2 doesn't have cutPaper
-            call.reject("cutPaper not available in SDK v2");
+            printerService.cutPaper(innerResultCallback);
             
             JSObject result = new JSObject();
             result.put("success", true);
@@ -1173,13 +1315,13 @@ public class SunmiPayPlugin extends Plugin {
 
     @PluginMethod
     public void getPrinterStatus(PluginCall call) {
-        if (printerOpt == null) {
-            call.reject("SDK not initialized");
+        if (!printerServiceConnected || printerService == null) {
+            call.reject("Print service not connected");
             return;
         }
 
         try {
-            int status = printerOpt.getPrinterStatus();
+            int status = printerService.updatePrinterState();
             
             JSObject result = new JSObject();
             result.put("status", status);
@@ -1192,14 +1334,13 @@ public class SunmiPayPlugin extends Plugin {
 
     @PluginMethod
     public void initPrinter(PluginCall call) {
-        if (printerOpt == null) {
-            call.reject("SDK not initialized");
+        if (!printerServiceConnected || printerService == null) {
+            call.reject("Print service not connected");
             return;
         }
 
         try {
-            // Note: PrinterOptV2 doesn't have initPrinter
-            call.reject("initPrinter not available in SDK v2");
+            printerService.printerInit(innerResultCallback);
             
             JSObject result = new JSObject();
             result.put("success", true);
@@ -1207,6 +1348,27 @@ public class SunmiPayPlugin extends Plugin {
         } catch (Exception e) {
             Log.e(TAG, "initPrinter error", e);
             call.reject("Failed to initialize printer: " + e.getMessage());
+        }
+    }
+    
+    @PluginMethod
+    public void setAlignment(PluginCall call) {
+        if (!printerServiceConnected || printerService == null) {
+            call.reject("Print service not connected");
+            return;
+        }
+
+        try {
+            int align = call.getInt("align", 0); // 0: left, 1: center, 2: right
+            
+            printerService.setAlignment(align, innerResultCallback);
+            
+            JSObject result = new JSObject();
+            result.put("success", true);
+            call.resolve(result);
+        } catch (Exception e) {
+            Log.e(TAG, "setAlignment error", e);
+            call.reject("Failed to set alignment: " + e.getMessage());
         }
     }
 
