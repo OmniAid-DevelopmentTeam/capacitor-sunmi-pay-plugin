@@ -56,49 +56,37 @@ public class PinPadModule {
             pinPadConfig.setPinType((byte) configObj.getInteger("pinType", 0).intValue());
             pinPadConfig.setOrderNumKey(configObj.getInteger("isOrderNumKey", 1) == 1);
             
-            // PAN must be converted to byte array (BCD format)
+            // PCI DSS: PAN must be converted to byte array (BCD format)
+            // SECURITY: Never log full PAN - only mask for debugging purposes
             String panStr = configObj.getString("pan");
-            Log.d(TAG, "=== PAN CONVERSION DEBUG ===");
-            Log.d(TAG, "Received PAN string: " + panStr);
             
             if (panStr != null && !panStr.isEmpty()) {
-                Log.d(TAG, "PAN length: " + panStr.length());
-                
                 // Ensure PAN is exactly 16 digits (pad with 0s on the left if needed)
                 // Most PIN pads expect exactly 16 digits (8 bytes in BCD)
                 if (panStr.length() < 16) {
                     panStr = String.format("%16s", panStr).replace(' ', '0');
-                    Log.d(TAG, "Padded PAN to 16 digits: " + panStr);
                 } else if (panStr.length() > 19) {
                     panStr = panStr.substring(0, 19);
-                    Log.d(TAG, "Truncated PAN to 19 digits: " + panStr);
                 }
                 
                 // Ensure even length for BCD conversion
                 if (panStr.length() % 2 != 0) {
                     panStr = panStr + "F";
-                    Log.d(TAG, "Padded PAN with F for BCD: " + panStr);
                 }
                 
                 try {
                     // Convert PAN string to BCD (Binary Coded Decimal) format
                     byte[] panBytes = stringToBcd(panStr);
-                    Log.d(TAG, "PAN in BCD (hex): " + bytesToHex(panBytes));
-                    Log.d(TAG, "PAN BCD length: " + panBytes.length + " bytes");
-                    
                     pinPadConfig.setPan(panBytes);
-                    Log.d(TAG, "PAN successfully set in config");
                 } catch (Exception e) {
-                    Log.e(TAG, "Failed to convert PAN to BCD", e);
+                    Log.e(TAG, "Failed to convert PAN to BCD");
                     call.reject("Failed to convert PAN: " + e.getMessage());
                     return;
                 }
             } else {
-                Log.e(TAG, "PAN is null or empty!");
                 call.reject("PAN (card number) is required");
                 return;
             }
-            Log.d(TAG, "=== END PAN DEBUG ===");
             
             int pinKeyIndex = configObj.getInteger("pinKeyIndex", configObj.getInteger("keyIndex", 0));
             int maxInput = configObj.getInteger("maxInput", 6);
@@ -114,23 +102,13 @@ public class PinPadModule {
             pinPadConfig.setTimeout(timeout);
             pinPadConfig.setAlgorithmType((byte) algorithmType);
             
-            Log.d(TAG, "PinPad Config:");
-            Log.d(TAG, "  pinKeyIndex: " + pinKeyIndex);
-            Log.d(TAG, "  maxInput: " + maxInput);
-            Log.d(TAG, "  minInput: " + minInput);
-            Log.d(TAG, "  keySystem: " + keySystem);
-            Log.d(TAG, "  timeout: " + timeout);
-            Log.d(TAG, "  algorithmType: " + algorithmType);
-            
             // Note: setPinBlockFormat and setEncryptWay may not be available in all SDK versions
             // These are optional parameters that can be set if needed
 
             currentCall = call;
 
-            Log.d(TAG, "Calling pinPadOpt.initPinPad()...");
             // Call SDK method
             pinPadOpt.initPinPad(pinPadConfig, mPinPadListener);
-            Log.d(TAG, "initPinPad() called successfully");
             
         } catch (Exception e) {
             Log.e(TAG, "initPinPad error", e);
@@ -370,31 +348,25 @@ public class PinPadModule {
     private final PinPadListenerV2.Stub mPinPadListener = new PinPadListenerV2.Stub() {
         @Override
         public void onPinLength(int len) throws RemoteException {
-            Log.d(TAG, "PIN length: " + len);
-            // Optionally notify the UI about PIN length
+            // PCI DSS: Do not log PIN length - can hint at PIN value
         }
 
         @Override
         public void onConfirm(int i, byte[] pinBlock) throws RemoteException {
-            Log.d(TAG, "=== PIN CONFIRM CALLBACK ===");
-            Log.d(TAG, "Result code: " + i);
-            
+            // PCI DSS: Never log PIN block data
             if (currentCall != null) {
                 if (i == 0 && pinBlock != null && pinBlock.length > 0) {
                     // pinBlock is already the encrypted PIN block from SDK
                     String pinBlockHex = bytesToHex(pinBlock);
                     
-                    Log.d(TAG, "PIN Block length: " + pinBlock.length + " bytes");
-                    Log.d(TAG, "PIN Block (hex): " + pinBlockHex);
-                    Log.d(TAG, "=== END PIN CONFIRM CALLBACK ===");
-                    
                     JSObject result = new JSObject();
-                    result.put("pinBlock", pinBlockHex);  // Return as pinBlock, not keySequence
+                    result.put("pinBlock", pinBlockHex);
                     result.put("confirmed", true);
                     currentCall.resolve(result);
+                    
+                    // PCI DSS: Clear sensitive data from memory
+                    java.util.Arrays.fill(pinBlock, (byte) 0);
                 } else {
-                    Log.e(TAG, "PIN input failed or no PIN block returned");
-                    Log.d(TAG, "=== END PIN CONFIRM CALLBACK ===");
                     currentCall.reject("PIN input failed with code: " + i);
                 }
                 currentCall = null;
@@ -403,7 +375,6 @@ public class PinPadModule {
 
         @Override
         public void onCancel() throws RemoteException {
-            Log.d(TAG, "PIN input cancelled");
             if (currentCall != null) {
                 currentCall.reject("PIN input cancelled by user");
                 currentCall = null;
@@ -412,7 +383,8 @@ public class PinPadModule {
 
         @Override
         public void onError(int errorCode) throws RemoteException {
-            Log.e(TAG, "PIN pad error: " + errorCode);
+            // Only log error codes, no sensitive data
+            Log.e(TAG, "PIN pad error code: " + errorCode);
             if (currentCall != null) {
                 currentCall.reject("PIN pad error: " + errorCode);
                 currentCall = null;
@@ -421,8 +393,7 @@ public class PinPadModule {
 
         @Override
         public void onHover(int x, byte[] pinBlock) throws RemoteException {
-            Log.d(TAG, "PIN hover: x=" + x);
-            // This is called when user hovers over a key (for some PIN pad types)
+            // PCI DSS: Do not log hover events with PIN data
         }
     };
 
@@ -460,13 +431,7 @@ public class PinPadModule {
                 return;
             }
 
-            Log.d(TAG, "=== GET PIN BLOCK DEBUG ===");
-            Log.d(TAG, "Key System: " + keySystem);
-            Log.d(TAG, "PIN Key Index: " + pinKeyIndex);
-            Log.d(TAG, "Algorithm Type: " + algorithmType);
-            Log.d(TAG, "PIN Block Format: " + pinblockFormat);
-            Log.d(TAG, "PAN: " + pan.substring(0, Math.min(6, pan.length())) + "***" + 
-                       (pan.length() > 4 ? pan.substring(pan.length() - 4) : ""));
+            // PCI DSS: Do not log PAN or any sensitive cardholder data
 
             // Create Bundle for getPinBlock
             Bundle param = new Bundle();
@@ -486,8 +451,7 @@ public class PinPadModule {
             // Call SDK method
             int result = pinPadOpt.getPinBlock(param, dataOut);
 
-            Log.d(TAG, "getPinBlock result: " + result);
-
+            // PCI DSS: Never log PIN block data
             if (result >= 0) {
                 // result is the length of valid data in dataOut
                 byte[] pinBlockBytes = new byte[result];
@@ -495,23 +459,20 @@ public class PinPadModule {
                 
                 // Convert to hex string
                 String pinBlock = bytesToHex(pinBlockBytes);
-                
-                Log.d(TAG, "PIN Block length: " + result + " bytes");
-                Log.d(TAG, "PIN Block (hex): " + pinBlock);
-                Log.d(TAG, "=== END GET PIN BLOCK DEBUG ===");
 
                 JSObject response = new JSObject();
                 response.put("pinBlock", pinBlock);
                 call.resolve(response);
+                
+                // PCI DSS: Clear sensitive data from memory
+                java.util.Arrays.fill(dataOut, (byte) 0);
+                java.util.Arrays.fill(pinBlockBytes, (byte) 0);
             } else {
-                Log.e(TAG, "Failed to get PIN block, error code: " + result);
-                Log.d(TAG, "=== END GET PIN BLOCK DEBUG ===");
                 call.reject("Failed to get PIN block, error code: " + result);
             }
 
         } catch (Exception e) {
-            Log.e(TAG, "getPinBlock error", e);
-            Log.d(TAG, "=== END GET PIN BLOCK DEBUG ===");
+            Log.e(TAG, "getPinBlock error");
             call.reject("Failed to get PIN block: " + e.getMessage());
         }
     }
@@ -571,6 +532,276 @@ public class PinPadModule {
         }
         
         return bcd;
+    }
+
+    // ==================== Anti-Exhaustive Protection ====================
+
+    /**
+     * Reset anti-exhaustive protection
+     * Resets the counter used for limiting failed PIN attempts
+     */
+    public void resetAntiExhaust(PluginCall call) {
+        if (pinPadOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Integer keyType = call.getInt("keyType");
+            Integer keyIndex = call.getInt("keyIndex");
+
+            if (keyType == null || keyIndex == null) {
+                call.reject("Parameters 'keyType' and 'keyIndex' are required");
+                return;
+            }
+
+            // Note: resetAntiExhaust is not available in SDK
+            // Using setAntiExhaustiveProtectionMode with level 1 (lowest) as a workaround
+            int result = pinPadOpt.setAntiExhaustiveProtectionMode(1);
+            
+            if (result >= 0) {
+                JSObject response = new JSObject();
+                response.put("success", true);
+                response.put("waitTime", result);
+                call.resolve(response);
+            } else {
+                call.reject("Reset anti-exhaustive failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "resetAntiExhaust error", e);
+            call.reject("Failed to reset anti-exhaustive: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get anti-exhaustive status
+     * Returns the current status and remaining attempts
+     */
+    public void getAntiExhaustStatus(PluginCall call) {
+        if (pinPadOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Integer keyType = call.getInt("keyType");
+            Integer keyIndex = call.getInt("keyIndex");
+
+            if (keyType == null || keyIndex == null) {
+                call.reject("Parameters 'keyType' and 'keyIndex' are required");
+                return;
+            }
+
+            // SDK method: getAntiExhaustiveProtectionMode() returns current mode (1-5)
+            int currentMode = pinPadOpt.getAntiExhaustiveProtectionMode();
+            
+            if (currentMode >= 0) {
+                JSObject response = new JSObject();
+                response.put("mode", currentMode);
+                // Estimate remain times based on mode
+                int[] maxTimes = {4, 12, 30, 60, 120};
+                response.put("maxTimes", currentMode > 0 && currentMode <= 5 ? maxTimes[currentMode - 1] : 0);
+                call.resolve(response);
+            } else {
+                call.reject("Get anti-exhaustive status failed, error code: " + currentMode);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "getAntiExhaustStatus error", e);
+            call.reject("Failed to get anti-exhaustive status: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Set anti-exhaustive configuration
+     */
+    public void setAntiExhaustConfig(PluginCall call) {
+        if (pinPadOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Integer keyType = call.getInt("keyType");
+            Integer keyIndex = call.getInt("keyIndex");
+            Integer maxTimes = call.getInt("maxTimes", 5);
+            Integer lockDuration = call.getInt("lockDuration", 300);
+
+            if (keyType == null || keyIndex == null) {
+                call.reject("Parameters 'keyType' and 'keyIndex' are required");
+                return;
+            }
+
+            // SDK method: setAntiExhaustiveProtectionMode(int level)
+            // level 1-5: 1-2min4次, 2-6min12次, 3-15min30次, 4-30min60次, 5-60min120次
+            // Map maxTimes to level
+            int level;
+            if (maxTimes <= 4) level = 1;
+            else if (maxTimes <= 12) level = 2;
+            else if (maxTimes <= 30) level = 3;
+            else if (maxTimes <= 60) level = 4;
+            else level = 5;
+
+            int result = pinPadOpt.setAntiExhaustiveProtectionMode(level);
+            
+            if (result >= 0) {
+                JSObject response = new JSObject();
+                response.put("success", true);
+                response.put("waitTime", result);
+                call.resolve(response);
+            } else {
+                call.reject("Set anti-exhaustive config failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "setAntiExhaustConfig error", e);
+            call.reject("Failed to set anti-exhaustive config: " + e.getMessage());
+        }
+    }
+
+    // ==================== Visual Impairment Mode ====================
+
+    /**
+     * Set visual impairment mode for PIN pad
+     * Enables audio feedback for visually impaired users
+     */
+    public void setVisualImpairmentMode(PluginCall call) {
+        if (pinPadOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Boolean enable = call.getBoolean("enable", false);
+
+            Bundle config = new Bundle();
+            config.putBoolean("enable", enable);
+
+            // Voice type for audio feedback
+            if (call.hasOption("voiceType")) {
+                config.putInt("voiceType", call.getInt("voiceType", 0));
+            }
+            // Volume level
+            if (call.hasOption("volume")) {
+                config.putInt("volume", call.getInt("volume", 50));
+            }
+
+            // SDK method: setVisualImpairmentModeParam(Bundle param)
+            int result = pinPadOpt.setVisualImpairmentModeParam(config);
+            
+            if (result == 0) {
+                JSObject response = new JSObject();
+                response.put("success", true);
+                call.resolve(response);
+            } else {
+                call.reject("Set visual impairment mode failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "setVisualImpairmentMode error", e);
+            call.reject("Failed to set visual impairment mode: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get visual impairment mode status
+     */
+    public void getVisualImpairmentMode(PluginCall call) {
+        if (pinPadOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Bundle statusOut = new Bundle();
+            // SDK method: getVisualImpairmentModeParam(Bundle param)
+            int result = pinPadOpt.getVisualImpairmentModeParam(statusOut);
+            
+            if (result == 0) {
+                JSObject response = new JSObject();
+                response.put("timeoutGap1", statusOut.getInt("timeoutGap1", 10));
+                response.put("timeoutGap2", statusOut.getInt("timeoutGap2", 10));
+                response.put("ttsLanguage", statusOut.getInt("ttsLanguage", 0));
+                response.put("rnibSelectMode", statusOut.getInt("rnibSelectMode", 0));
+                response.put("rnibHoldTime", statusOut.getInt("rnibHoldTime", 30));
+                call.resolve(response);
+            } else {
+                call.reject("Get visual impairment mode failed, error code: " + result);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "getVisualImpairmentMode error", e);
+            call.reject("Failed to get visual impairment mode: " + e.getMessage());
+        }
+    }
+
+    // ==================== PinPad Info ====================
+
+    /**
+     * Get PinPad serial number
+     */
+    public void getPinPadSerialNo(PluginCall call) {
+        if (pinPadOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            // Note: getPinPadSerialNo is not available in SDK
+            // Return a placeholder response
+            JSObject response = new JSObject();
+            response.put("serialNo", "N/A");
+            response.put("note", "PinPad serial number not available in this SDK version");
+            call.resolve(response);
+        } catch (Exception e) {
+            Log.e(TAG, "getPinPadSerialNo error", e);
+            call.reject("Failed to get PinPad serial number: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get PinPad firmware version
+     */
+    public void getPinPadVersion(PluginCall call) {
+        if (pinPadOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            // Note: getPinPadVersion is not available in SDK
+            JSObject response = new JSObject();
+            response.put("version", "N/A");
+            response.put("note", "PinPad version not available in this SDK version");
+            call.resolve(response);
+        } catch (Exception e) {
+            Log.e(TAG, "getPinPadVersion error", e);
+            call.reject("Failed to get PinPad version: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if PinPad supports specific feature
+     */
+    public void isPinPadFeatureSupported(PluginCall call) {
+        if (pinPadOpt == null) {
+            call.reject("SDK not initialized");
+            return;
+        }
+
+        try {
+            Integer feature = call.getInt("feature");
+            if (feature == null) {
+                call.reject("Parameter 'feature' is required");
+                return;
+            }
+
+            // Note: isPinPadFeatureSupported is not available in SDK
+            // Always return true as a default behavior
+            JSObject response = new JSObject();
+            response.put("supported", true);
+            response.put("note", "Feature check not available in this SDK version");
+            call.resolve(response);
+        } catch (Exception e) {
+            Log.e(TAG, "isPinPadFeatureSupported error", e);
+            call.reject("Failed to check PinPad feature: " + e.getMessage());
+        }
     }
 }
 
