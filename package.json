@@ -1,5 +1,5 @@
 {
-  "name": "capacitor-sunmi-pay",
+  "name": "@omniaid/capacitor-sunmi-pay",
   "version": "1.0.0",
   "description": "Capacitor plugin for Sunmi Payment SDK - provides card reading, EMV processing, PIN input, security operations, and printing capabilities for Sunmi POS devices",
   "main": "dist/plugin.cjs.js",
