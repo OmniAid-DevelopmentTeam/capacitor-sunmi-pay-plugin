@@ -11,7 +11,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.0.0'
+        classpath 'com.android.tools.build:gradle:8.7.3'
     }
 }
 
@@ -33,9 +33,21 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    lintOptions {
-        abortOnError false
+
+    buildFeatures {
+        // Disable build features to minimize published artifacts
+        aidl false
+        renderScript false
+        resValues false
+        shaders false
     }
+
+    lint {
+        // Minimal lint config - consuming apps will skip this module's lint
+        abortOnError false
+        checkReleaseBuilds false
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -49,13 +61,30 @@ android {
     }
 }
 
-// Disable AAR bundling tasks because this plugin includes a local AAR dependency
-// The plugin is designed to be used as part of an application, not as a standalone AAR
+// Configure for plugin with local AAR dependencies
 afterEvaluate {
-    tasks.findAll { task ->
+    // Disable AAR bundling - this plugin is consumed as source code by Capacitor apps
+    tasks.matching { task ->
         task.name.startsWith('bundle') && task.name.endsWith('Aar')
-    }.each { task ->
-        task.enabled = false
+    }.configureEach {
+        enabled = false
+    }
+
+    // Disable all lint tasks - AGP 8.7+ cannot create intermediate AAR with local .aar deps
+    tasks.matching { task ->
+        task.name.startsWith('lint') ||
+        task.name.contains('Lint') ||
+        task.name.contains('AndroidTest')
+    }.configureEach {
+        enabled = false
+    }
+
+    // Critical: Prevent this module from being included in consuming app's lint dependency graph
+    // This stops the consuming app from trying to resolve local_aar_for_lint/out.aar
+    configurations.configureEach { config ->
+        if (config.name.contains('lintPublish') || config.name.contains('lintModel')) {
+            config.canBeConsumed = false
+        }
     }
 }
 
@@ -65,13 +94,13 @@ repositories {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
-    implementation project(':capacitor-android')
+    implementation fileTree(include: ['*.jar', '*.aar'], dir: 'libs')
+    compileOnly "com.capacitorjs:core:5.0.0"
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
-    
+
     // Sunmi Printer Library for high-level printing API
     implementation("com.sunmi:printerlibrary:1.0.22")
 }
