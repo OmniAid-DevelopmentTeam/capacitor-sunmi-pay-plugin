@@ -9,6 +9,7 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -1360,15 +1361,88 @@ public class SunmiPayPlugin extends Plugin {
 
         try {
             int align = call.getInt("align", 0); // 0: left, 1: center, 2: right
-            
+
             printerService.setAlignment(align, innerResultCallback);
-            
+
             JSObject result = new JSObject();
             result.put("success", true);
             call.resolve(result);
         } catch (Exception e) {
             Log.e(TAG, "setAlignment error", e);
             call.reject("Failed to set alignment: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Print a table where each row contains N cells laid out with the given
+     * per-column widths (in characters) and per-column alignments (0=left,
+     * 1=center, 2=right). Each row is rendered by Sunmi's printColumnsString
+     * which computes column widths in pixels under the active font, so the
+     * caller does not need to pad with spaces manually.
+     */
+    @PluginMethod
+    public void printTable(PluginCall call) {
+        if (!printerServiceConnected || printerService == null) {
+            call.reject("Print service not connected");
+            return;
+        }
+
+        try {
+            JSArray rowsArray = call.getArray("data");
+            JSArray widthsArray = call.getArray("columnWidths");
+            JSArray alignsArray = call.getArray("align");
+
+            if (rowsArray == null || widthsArray == null || alignsArray == null) {
+                call.reject("Parameters 'data', 'columnWidths' and 'align' are required");
+                return;
+            }
+
+            int columnCount = widthsArray.length();
+            if (columnCount == 0) {
+                call.reject("'columnWidths' must contain at least one column");
+                return;
+            }
+            if (alignsArray.length() != columnCount) {
+                call.reject("'columnWidths' and 'align' must have the same length");
+                return;
+            }
+
+            int[] widths = new int[columnCount];
+            int[] aligns = new int[columnCount];
+            for (int columnIndex = 0; columnIndex < columnCount; columnIndex += 1) {
+                widths[columnIndex] = widthsArray.getInt(columnIndex);
+                aligns[columnIndex] = alignsArray.getInt(columnIndex);
+            }
+
+            int rowCount = rowsArray.length();
+            for (int rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+                org.json.JSONArray rowArray = rowsArray.getJSONArray(rowIndex);
+                if (rowArray.length() != columnCount) {
+                    call.reject("Row " + rowIndex + " has " + rowArray.length()
+                        + " columns, expected " + columnCount);
+                    return;
+                }
+
+                String[] cells = new String[columnCount];
+                for (int columnIndex = 0; columnIndex < columnCount; columnIndex += 1) {
+                    cells[columnIndex] = rowArray.getString(columnIndex);
+                }
+
+                try {
+                    printerService.printColumnsString(cells, widths, aligns, innerResultCallback);
+                } catch (RemoteException remoteException) {
+                    Log.e(TAG, "printTable row " + rowIndex + " failed", remoteException);
+                    call.reject("Failed to print table row " + rowIndex + ": " + remoteException.getMessage());
+                    return;
+                }
+            }
+
+            JSObject result = new JSObject();
+            result.put("success", true);
+            call.resolve(result);
+        } catch (Exception e) {
+            Log.e(TAG, "printTable error", e);
+            call.reject("Failed to print table: " + e.getMessage());
         }
     }
 
