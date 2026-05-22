@@ -12,6 +12,12 @@ dist/
 *.swo
 *~
 
+# Eclipse
+.classpath
+.project
+.settings/
+/android/bin/
+
 # OS
 .DS_Store
 Thumbs.db
